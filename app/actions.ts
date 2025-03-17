@@ -384,6 +384,15 @@ export const generateChartConfig = async (
       - 'treemap' - Treemap (good for hierarchical data)
       - 'table' - Table (when data is better shown as a table than a chart)
       
+      IMPORTANT - COMPARISON QUERIES:
+      When the user asks for a COMPARISON between datasets (e.g., "compare sales by category", "show difference between morning and evening shifts", etc.):
+      1. Use the 'relatedCharts' field to create a side-by-side comparison view
+      2. The main chart should show one dataset, and the first relatedChart should show the other dataset for comparison
+      3. Make sure both charts have the same type (bar, line, etc.) to facilitate easy comparison
+      4. Use similar scales and axes where possible
+      5. Include clear titles that indicate what each chart is showing
+      6. In the description, highlight the key differences or similarities between the datasets
+      
       For multiple query results, you can suggest:
       1. A single chart that combines data from multiple queries
       2. Multiple charts (one per query) with clear explanations of what each shows
