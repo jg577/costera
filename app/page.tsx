@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   generateChartConfig,
@@ -28,6 +28,16 @@ export default function Page() {
   const [chartConfig, setChartConfig] = useState<Config | null>(null);
   const [insights, setInsights] = useState<Insights | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to search bar after results are loaded
+  useEffect(() => {
+    if (submitted && !loading && searchBarRef.current) {
+      setTimeout(() => {
+        searchBarRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
+  }, [submitted, loading]);
 
   const handleClear = () => {
     setInputValue("");
@@ -113,16 +123,21 @@ export default function Page() {
         >
           <div className="p-6 sm:p-8 flex flex-col flex-grow">
             <Header handleClear={handleClear} />
-            <Search
-              handleClear={handleClear}
-              handleSubmit={handleSubmit}
-              inputValue={inputValue}
-              setInputValue={setInputValue}
-              submitted={submitted}
-            />
+
+            {/* Only show the search bar on the initial landing page */}
+            {!submitted && (
+              <Search
+                handleClear={handleClear}
+                handleSubmit={handleSubmit}
+                inputValue={inputValue}
+                setInputValue={setInputValue}
+                submitted={submitted}
+              />
+            )}
+
             <div
               id="main-container"
-              className="flex-grow flex flex-col sm:min-h-[420px]"
+              className="flex-grow flex flex-col sm:min-h-[420px] overflow-y-auto"
             >
               <div className="flex-grow h-full">
                 <AnimatePresence mode="wait">
@@ -165,7 +180,7 @@ export default function Page() {
                         </>
                       )}
                       {loading ? (
-                        <div className="h-full absolute bg-background/90 w-full flex flex-col items-center justify-center space-y-4">
+                        <div className="flex flex-col items-center justify-center min-h-[200px] p-8 mb-4 border-2 border-dashed border-muted rounded-md w-full space-y-4">
                           <Loader2 className="h-8 w-8 animate-spin text-primary" />
                           <p className="text-foreground text-sm">
                             {loadingStep === 1
@@ -174,10 +189,11 @@ export default function Page() {
                           </p>
                         </div>
                       ) : activeQueryResults.length === 0 ? (
-                        <div className="flex-grow flex items-center justify-center">
-                          <p className="text-center text-muted-foreground text-sm">
-                            No results found.
-                          </p>
+                        <div className="flex items-center justify-center p-8 mb-4 border-2 border-dashed border-muted rounded-md">
+                          <div className="text-center">
+                            <p className="text-muted-foreground mb-1">No results found</p>
+                            <p className="text-sm text-muted-foreground">Try rephrasing your question or adjusting your search terms</p>
+                          </div>
                         </div>
                       ) : (
                         <Results
@@ -189,6 +205,23 @@ export default function Page() {
                           queryResults={queryResults}
                           selectedQueryIndex={selectedQueryIndex}
                         />
+                      )}
+
+                      {/* Show search bar after results when submitted - modified to always show after search */}
+                      {!loading && submitted && (
+                        <div
+                          ref={searchBarRef}
+                          className="mt-8 pt-6 border-t border-border"
+                        >
+                          <h3 className="text-lg font-medium mb-4">Ask another question</h3>
+                          <Search
+                            handleClear={handleClear}
+                            handleSubmit={handleSubmit}
+                            inputValue={inputValue}
+                            setInputValue={setInputValue}
+                            submitted={submitted}
+                          />
+                        </div>
                       )}
                     </motion.div>
                   )}

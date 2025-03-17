@@ -21,7 +21,7 @@ export const Search = ({
         e.preventDefault();
         await handleSubmit();
       }}
-      className="mb-6"
+      className={submitted ? "w-full" : "mb-6"}
     >
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
         <div className="relative flex-grow">
@@ -38,14 +38,22 @@ export const Search = ({
         </div>
         <div className="flex sm:flex-row items-center justify-center gap-2">
           {submitted ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClear}
-              className="friendly-button w-full sm:w-auto"
-            >
-              Clear
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClear}
+                className="friendly-button w-full sm:w-auto"
+              >
+                Clear
+              </Button>
+              <Button
+                type="submit"
+                className="friendly-button primary-button w-full sm:w-auto"
+              >
+                Search
+              </Button>
+            </div>
           ) : (
             <Button
               type="submit"

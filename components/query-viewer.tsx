@@ -46,15 +46,15 @@ export const QueryViewer = ({
   if (activeQuery.length === 0) return null;
 
   return (
-    <div className="mb-6 relative group">
-      <div className="query-box">
+    <div className="mb-6 relative">
+      <div className="p-4 mb-4 border-2 border-muted rounded-md overflow-x-auto w-full">
         {activeQueryName && (
           <div className="mb-2 flex items-center text-primary">
             <FileText className="h-4 w-4 mr-2" />
             <span className="font-medium">{activeQueryName}</span>
           </div>
         )}
-        <div className="code-text text-sm mt-1">
+        <div className="code-text text-sm mt-1 overflow-x-auto">
           {queryExpanded ? (
             queryExplanations && queryExplanations.length > 0 ? (
               <>
@@ -67,13 +67,13 @@ export const QueryViewer = ({
                 </p>
               </>
             ) : (
-              <div className="flex justify-between items-center">
-                <span className="text-foreground whitespace-pre-wrap">{activeQuery}</span>
+              <div className="flex justify-between items-start">
+                <pre className="text-foreground whitespace-pre-wrap overflow-x-auto break-words max-w-full">{activeQuery}</pre>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleExplainQuery}
-                  className="h-fit px-2 py-1 hover:bg-secondary/80 hidden sm:inline-block text-xs ml-2"
+                  className="h-fit px-2 py-1 hover:bg-secondary/80 hidden sm:inline-block text-xs ml-2 flex-shrink-0"
                   aria-label="Explain query"
                   disabled={loadingExplanation}
                 >
@@ -87,23 +87,25 @@ export const QueryViewer = ({
               </div>
             )
           ) : (
-            <span className="text-muted-foreground">
-              {activeQuery.slice(0, activeQueryCutoff)}
-              {activeQuery.length > activeQueryCutoff ? "..." : ""}
-            </span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">
+                {activeQuery.slice(0, activeQueryCutoff)}
+                {activeQuery.length > activeQueryCutoff ? "..." : ""}
+              </span>
+              {activeQuery.length > activeQueryCutoff && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setQueryExpanded(true)}
+                  className="text-xs bg-secondary/70 hover:bg-secondary/90 flex-shrink-0 ml-2"
+                >
+                  Show full
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
-      {!queryExpanded && (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setQueryExpanded(true)}
-          className="absolute right-3 top-3 text-xs bg-secondary/70 hover:bg-secondary/90"
-        >
-          Show full
-        </Button>
-      )}
     </div>
   );
 };

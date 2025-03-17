@@ -28,6 +28,18 @@ export const SuggestedQueries = ({
       desktop: "Compare payable vs total hours for each employee",
       mobile: "Payable vs total",
     },
+    {
+      desktop: "What were our food costs last month?",
+      mobile: "Food costs",
+    },
+    {
+      desktop: "Show me employee tips by day of week",
+      mobile: "Tips by day",
+    },
+    {
+      desktop: "Compare food costs between different categories",
+      mobile: "Cost categories",
+    },
   ];
 
   return (
@@ -37,15 +49,21 @@ export const SuggestedQueries = ({
       animate={{ opacity: 1 }}
       layout
       exit={{ opacity: 0 }}
-      className="h-full overflow-y-auto"
+      className="h-full overflow-y-auto pt-4"
     >
-      <div className="flex items-center mb-4">
+      <div className="flex items-center mb-6">
         <LightbulbIcon className="h-5 w-5 mr-2 text-primary" />
         <h2 className="text-lg font-medium text-foreground">
-          Suggested Questions
+          Welcome to Luna
         </h2>
       </div>
-      <div className="container-box p-4 mb-4">
+
+      <p className="text-md mb-6">
+        Ask any question about your restaurant data to get insights with natural language.
+        Luna can analyze time entries, food costs, and inventory data to help you make better decisions.
+      </p>
+
+      <div className="container-box p-4 mb-6">
         <p className="text-sm text-muted-foreground mb-3">
           Try one of these sample questions to explore your data:
         </p>
@@ -53,7 +71,7 @@ export const SuggestedQueries = ({
           {suggestionQueries.map((suggestion, index) => (
             <Button
               key={index}
-              className={`${index > 5 ? "hidden sm:inline-flex" : ""} friendly-button text-sm`}
+              className={`friendly-button text-sm`}
               type="button"
               variant="outline"
               onClick={() => handleSuggestionClick(suggestion.desktop)}
@@ -63,6 +81,16 @@ export const SuggestedQueries = ({
             </Button>
           ))}
         </div>
+      </div>
+
+      <div className="container-box p-4 mb-4 border-l-4 border-primary">
+        <h3 className="text-md font-medium mb-2">Tips for best results</h3>
+        <ul className="list-disc pl-5 text-sm space-y-2">
+          <li>Ask specific questions about your restaurant data</li>
+          <li>Include timeframes like &ldquo;this month&rdquo; or &ldquo;last week&rdquo;</li>
+          <li>Specify employee roles, food categories, or locations</li>
+          <li>Try asking for comparisons between different data points</li>
+        </ul>
       </div>
     </motion.div>
   );
