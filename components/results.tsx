@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ArrowRight, ArrowLeftRight, BarChart4, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import { CombinedComparisonChart } from "./combined-comparison-chart";
+import { CombinedComparisonChart } from "./CombinedComparisonChart";
 
 export const Results = ({
   results,
