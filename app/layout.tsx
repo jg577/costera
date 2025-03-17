@@ -4,10 +4,10 @@ import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
 
 export const metadata = {
-  metadataBase: new URL("https://natural-language-postgres.vercel.app"),
-  title: "Natural Language Postgres",
+  metadataBase: new URL("https://luna"),
+  title: "Luna - SQL Database Assistant",
   description:
-    "Chat with a Postgres database using natural language powered by the AI SDK by Vercel.",
+    "Chat with your SQL database using natural language powered by Luna.",
 };
 
 export default function RootLayout({
