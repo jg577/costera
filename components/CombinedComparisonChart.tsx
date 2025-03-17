@@ -22,6 +22,49 @@ function toTitleCase(str: string): string {
         .join(" ");
 }
 
+// Function to format timestamps in a human-readable way
+function formatDateTick(value: any, xKey: string): string {
+    // If the value is not a valid timestamp or date string, return as is
+    if (!value || (typeof value !== 'number' && isNaN(new Date(value).getTime()))) {
+        return String(value);
+    }
+
+    // Convert to Date object if it's a timestamp or date string
+    const date = typeof value === 'number' ? new Date(value) : new Date(value);
+
+    // Check if the x-axis key contains date-related terms
+    const isDateField = xKey?.toLowerCase().includes('date') ||
+        xKey?.toLowerCase().includes('time') ||
+        xKey?.toLowerCase().includes('day') ||
+        xKey?.toLowerCase().includes('month') ||
+        xKey?.toLowerCase().includes('year');
+
+    if (!isDateField) {
+        return String(value);
+    }
+
+    // Format based on the date range and granularity
+    const now = new Date();
+    const diffInDays = Math.abs(Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)));
+
+    if (diffInDays < 1) {
+        // For timestamps within the same day, show hours:minutes
+        return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInDays < 7) {
+        // For timestamps within a week, show weekday
+        return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    } else if (diffInDays < 31) {
+        // For timestamps within a month, show month/day
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } else if (diffInDays < 365) {
+        // For timestamps within a year, show month only
+        return date.toLocaleDateString(undefined, { month: 'short' });
+    } else {
+        // For timestamps over a year old, show month and year
+        return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    }
+}
+
 type CombinedDataPoint = Record<string, any>;
 
 // Define a more flexible type for the related chart config
@@ -48,6 +91,16 @@ export function CombinedComparisonChart({
     relatedData: Result[];
     relatedConfig: RelatedChartConfig;
 }) {
+    // Check for empty datasets
+    if (!mainData || !relatedData || mainData.length === 0 || relatedData.length === 0) {
+        return (
+            <div className="p-4 border rounded-md bg-muted/20 text-center">
+                <p>Not enough data available for comparison chart.</p>
+                <p className="text-sm text-muted-foreground mt-2">Try selecting different queries to compare.</p>
+            </div>
+        );
+    }
+
     // Determine whether we need dual axes based on value ranges
     const mainValues = mainData.map(item => Number(item[mainConfig.yKeys[0]])).filter(val => !isNaN(val));
     const relatedValues = relatedData.map(item => Number(item[relatedConfig.yKeys[0]])).filter(val => !isNaN(val));
@@ -73,7 +126,10 @@ export function CombinedComparisonChart({
     const relatedPrefix = "related_";
 
     Array.from(allXValues).forEach(xValue => {
-        const dataPoint: CombinedDataPoint = { xValue };
+        const dataPoint: CombinedDataPoint = {
+            xValue,
+            originalXValue: xValue // Keep the original value for reference
+        };
 
         // Find matching points from each dataset
         const mainItem = mainData.find(item => String(item[mainConfig.xKey]) === xValue);
@@ -91,6 +147,16 @@ export function CombinedComparisonChart({
 
         combinedData.push(dataPoint);
     });
+
+    // Skip empty datasets
+    if (combinedData.length === 0) {
+        return (
+            <div className="p-4 border rounded-md bg-muted/20 text-center">
+                <p>No data available for comparison chart.</p>
+                <p className="text-sm text-muted-foreground mt-2">Try selecting different queries to compare.</p>
+            </div>
+        );
+    }
 
     // Sort data if x axis is numeric
     const isNumericXAxis = combinedData.length > 0 && !isNaN(Number(combinedData[0]?.xValue));
@@ -110,15 +176,14 @@ export function CombinedComparisonChart({
         }
     };
 
-    // If there's no data to display, show a message
-    if (combinedData.length === 0 || (mainData.length === 0 && relatedData.length === 0)) {
-        return (
-            <div className="p-4 border rounded-md bg-muted/20 text-center">
-                <p>No data available for comparison chart.</p>
-                <p className="text-sm text-muted-foreground mt-2">Try selecting different queries to compare.</p>
-            </div>
-        );
-    }
+    // Determine if we're likely dealing with date data
+    const isDateData = (
+        mainConfig.xKey.toLowerCase().includes('date') ||
+        mainConfig.xKey.toLowerCase().includes('time') ||
+        mainConfig.xKey.toLowerCase().includes('day') ||
+        mainConfig.xKey.toLowerCase().includes('month') ||
+        mainConfig.xKey.toLowerCase().includes('year')
+    );
 
     // For bar charts, use grouped bars
     if (mainConfig.type === "bar") {
@@ -130,7 +195,10 @@ export function CombinedComparisonChart({
                 <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={combinedData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="xValue" />
+                        <XAxis
+                            dataKey="xValue"
+                            tickFormatter={(value) => isDateData ? formatDateTick(value, 'date') : String(value)}
+                        />
                         <YAxis
                             yAxisId="left"
                             label={{ value: toTitleCase(mainYKey), angle: -90, position: 'insideLeft' }}
@@ -172,7 +240,10 @@ export function CombinedComparisonChart({
                 <ResponsiveContainer width="100%" height={400}>
                     <LineChart data={combinedData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="xValue" />
+                        <XAxis
+                            dataKey="xValue"
+                            tickFormatter={(value) => isDateData ? formatDateTick(value, 'date') : String(value)}
+                        />
                         <YAxis
                             yAxisId="left"
                             label={{ value: toTitleCase(mainYKey), angle: -90, position: 'insideLeft' }}
@@ -184,7 +255,18 @@ export function CombinedComparisonChart({
                                 label={{ value: toTitleCase(relatedYKey), angle: 90, position: 'insideRight' }}
                             />
                         )}
-                        <Tooltip />
+                        <Tooltip
+                            formatter={(value, name) => {
+                                const nameStr = String(name);
+                                if (nameStr.startsWith(mainPrefix)) {
+                                    return [value, `${toTitleCase(mainYKey)} (${mainConfig.title})`];
+                                } else if (nameStr.startsWith(relatedPrefix)) {
+                                    return [value, `${toTitleCase(relatedYKey)} (${relatedConfig.title})`];
+                                }
+                                return [value, name];
+                            }}
+                            labelFormatter={(label) => isDateData ? formatDateTick(label, 'date') : String(label)}
+                        />
                         <Legend />
                         <Line
                             name={`${toTitleCase(mainYKey)} (${mainConfig.title})`}
@@ -193,6 +275,7 @@ export function CombinedComparisonChart({
                             stroke="#8884d8"
                             yAxisId="left"
                             activeDot={{ r: 8 }}
+                            connectNulls={true}
                         />
                         <Line
                             name={`${toTitleCase(relatedYKey)} (${relatedConfig.title})`}
@@ -201,6 +284,7 @@ export function CombinedComparisonChart({
                             stroke="#82ca9d"
                             yAxisId={needsDualAxes ? "right" : "left"}
                             activeDot={{ r: 8 }}
+                            connectNulls={true}
                         />
                     </LineChart>
                 </ResponsiveContainer>
