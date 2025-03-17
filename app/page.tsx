@@ -19,6 +19,7 @@ import { Header } from "@/components/header";
 
 export default function Page() {
   const [inputValue, setInputValue] = useState("");
+  const [lastQuery, setLastQuery] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [queries, setQueries] = useState<SqlQuery[]>([]);
   const [queryResults, setQueryResults] = useState<QueryResult[]>([]);
@@ -41,6 +42,7 @@ export default function Page() {
 
   const handleClear = () => {
     setInputValue("");
+    setLastQuery("");
     setSubmitted(false);
     setQueries([]);
     setQueryResults([]);
@@ -52,6 +54,9 @@ export default function Page() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim()) return;
+
+    // Store the current query before processing
+    setLastQuery(inputValue);
 
     setSubmitted(true);
     setLoading(true);
@@ -154,6 +159,12 @@ export default function Page() {
                       layout
                       className="sm:h-full min-h-[400px] flex flex-col"
                     >
+                      {/* Original query display */}
+                      <div className="mb-4 bg-muted/30 p-3 rounded-lg">
+                        <div className="text-xs text-muted-foreground">Original Query:</div>
+                        <div className="font-medium">{lastQuery}</div>
+                      </div>
+
                       {queries.length > 0 && (
                         <>
                           {queries.length > 1 && (
@@ -220,6 +231,7 @@ export default function Page() {
                             inputValue={inputValue}
                             setInputValue={setInputValue}
                             submitted={submitted}
+                            originalQuery={lastQuery}
                           />
                         </div>
                       )}

@@ -1,4 +1,4 @@
-import { Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -8,13 +8,22 @@ export const Search = ({
   setInputValue,
   submitted,
   handleClear,
+  originalQuery,
 }: {
   handleSubmit: () => Promise<void>;
   inputValue: string;
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
   submitted: boolean;
   handleClear: () => void;
+  originalQuery?: string;
 }) => {
+  // Function to restore the original query
+  const handleRestoreQuery = () => {
+    if (originalQuery) {
+      setInputValue(originalQuery);
+    }
+  };
+
   return (
     <form
       onSubmit={async (e) => {
@@ -28,7 +37,7 @@ export const Search = ({
           <div className="container-box flex items-center">
             <Input
               type="text"
-              placeholder="Ask a question about your data..."
+              placeholder={originalQuery ? "Refine your question or ask something new..." : "Ask a question about your data..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               className="friendly-input border-0 shadow-none bg-transparent px-0 focus:ring-0 h-9"
@@ -47,6 +56,18 @@ export const Search = ({
               >
                 Clear
               </Button>
+              {originalQuery && originalQuery !== inputValue && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleRestoreQuery}
+                  className="friendly-button w-full sm:w-auto"
+                  title="Restore original query"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Restore
+                </Button>
+              )}
               <Button
                 type="submit"
                 className="friendly-button primary-button w-full sm:w-auto"
