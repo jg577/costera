@@ -31,6 +31,50 @@ function toTitleCase(str: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+// Function to format timestamps in a human-readable way
+function formatDateTick(value: any, xKey: string): string {
+  // If the value is not a valid timestamp or date string, return as is
+  if (!value || (typeof value !== 'number' && isNaN(new Date(value).getTime()))) {
+    return String(value);
+  }
+
+  // Convert to Date object if it's a timestamp or date string
+  const date = typeof value === 'number' ? new Date(value) : new Date(value);
+
+  // Check if the x-axis key contains date-related terms
+  const isDateField = xKey?.toLowerCase().includes('date') ||
+    xKey?.toLowerCase().includes('time') ||
+    xKey?.toLowerCase().includes('day') ||
+    xKey?.toLowerCase().includes('month') ||
+    xKey?.toLowerCase().includes('year');
+
+  if (!isDateField) {
+    return String(value);
+  }
+
+  // Format based on the date range and granularity
+  const now = new Date();
+  const diffInDays = Math.abs(Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)));
+
+  if (diffInDays < 1) {
+    // For timestamps within the same day, show hours:minutes
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } else if (diffInDays < 7) {
+    // For timestamps within a week, show weekday
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  } else if (diffInDays < 31) {
+    // For timestamps within a month, show month/day
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } else if (diffInDays < 365) {
+    // For timestamps within a year, show month only
+    return date.toLocaleDateString(undefined, { month: 'short' });
+  } else {
+    // For timestamps over a year old, show month and year
+    return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  }
+}
+
 const colors = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -81,7 +125,10 @@ export function DynamicChart({
         return (
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={chartConfig.xKey}>
+            <XAxis
+              dataKey={chartConfig.xKey}
+              tickFormatter={(value) => formatDateTick(value, chartConfig.xKey)}
+            >
               <Label
                 value={toTitleCase(chartConfig.xKey)}
                 offset={0}
@@ -122,6 +169,7 @@ export function DynamicChart({
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey={useTransformedData ? chartConfig.xKey : chartConfig.xKey}
+              tickFormatter={(value) => formatDateTick(value, chartConfig.xKey)}
             >
               <Label
                 value={toTitleCase(
@@ -142,28 +190,31 @@ export function DynamicChart({
             {chartConfig.legend && <Legend />}
             {useTransformedData
               ? lineFields.map((key, index) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={colors[index % colors.length]}
-                  />
-                ))
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={colors[index % colors.length]}
+                />
+              ))
               : chartConfig.yKeys.map((key, index) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={colors[index % colors.length]}
-                  />
-                ))}
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={colors[index % colors.length]}
+                />
+              ))}
           </LineChart>
         );
       case "area":
         return (
           <AreaChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={chartConfig.xKey} />
+            <XAxis
+              dataKey={chartConfig.xKey}
+              tickFormatter={(value) => formatDateTick(value, chartConfig.xKey)}
+            />
             <YAxis />
             <ChartTooltip content={<ChartTooltipContent />} />
             {chartConfig.legend && <Legend />}

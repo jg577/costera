@@ -84,13 +84,13 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
             ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
+                .map(([key, itemConfig]) => {
+                  const color =
+                    itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+                    itemConfig.color
+                  return color ? `  --color-${key}: ${color};` : null
+                })
+                .join("\n")}
 }
 `
           )
@@ -102,16 +102,59 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+// Function to format timestamps in a human-readable way (same as in dynamic-chart.tsx)
+function formatDateTick(value: any, key: string): string {
+  // If the value is not a valid timestamp or date string, return as is
+  if (!value || (typeof value !== 'number' && isNaN(new Date(value).getTime()))) {
+    return String(value);
+  }
+
+  // Convert to Date object if it's a timestamp or date string
+  const date = typeof value === 'number' ? new Date(value) : new Date(value);
+
+  // Check if the field name contains date-related terms
+  const isDateField = key?.toLowerCase().includes('date') ||
+    key?.toLowerCase().includes('time') ||
+    key?.toLowerCase().includes('day') ||
+    key?.toLowerCase().includes('month') ||
+    key?.toLowerCase().includes('year');
+
+  if (!isDateField) {
+    return String(value);
+  }
+
+  // Format based on the date range and granularity
+  const now = new Date();
+  const diffInDays = Math.abs(Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)));
+
+  if (diffInDays < 1) {
+    // For timestamps within the same day, show hours:minutes
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } else if (diffInDays < 7) {
+    // For timestamps within a week, show weekday
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  } else if (diffInDays < 31) {
+    // For timestamps within a month, show month/day
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } else if (diffInDays < 365) {
+    // For timestamps within a year, show month only
+    return date.toLocaleDateString(undefined, { month: 'short' });
+  } else {
+    // For timestamps over a year old, show month and year
+    return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  }
+}
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
-      hideLabel?: boolean
-      hideIndicator?: boolean
-      indicator?: "line" | "dot" | "dashed"
-      nameKey?: string
-      labelKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    hideLabel?: boolean
+    hideIndicator?: boolean
+    indicator?: "line" | "dot" | "dashed"
+    nameKey?: string
+    labelKey?: string
+  }
 >(
   (
     {
@@ -133,47 +176,31 @@ const ChartTooltipContent = React.forwardRef<
   ) => {
     const { config } = useChart()
 
-    const tooltipLabel = React.useMemo(() => {
-      if (hideLabel || !payload?.length) {
-        return null
-      }
-
-      const [item] = payload
-      const key = `${labelKey || item.dataKey || item.name || "value"}`
-      const itemConfig = getPayloadConfigFromPayload(config, item, key)
-      const value =
-        !labelKey && typeof label === "string"
-          ? config[label as keyof typeof config]?.label || label
-          : itemConfig?.label
-
-      if (labelFormatter) {
-        return (
-          <div className={cn("font-medium", labelClassName)}>
-            {labelFormatter(value, payload)}
-          </div>
-        )
-      }
-
-      if (!value) {
-        return null
-      }
-
-      return <div className={cn("font-medium", labelClassName)}>{value}</div>
-    }, [
-      label,
-      labelFormatter,
-      payload,
-      hideLabel,
-      labelClassName,
-      config,
-      labelKey,
-    ])
-
     if (!active || !payload?.length) {
       return null
     }
 
-    const nestLabel = payload.length === 1 && indicator !== "dot"
+    const payloadData = payload[0]?.payload || {};
+    const labelValue = label ?? payloadData?.name;
+    const dataKey = label && typeof label === "string" ? label : labelKey;
+
+    // Format label if it looks like a date and the field is date-related
+    const tooltipLabel = !hideLabel ? (
+      <div
+        className={cn("text-xs font-medium text-foreground pb-1", labelClassName)}
+      >
+        {labelFormatter ? (
+          labelFormatter(labelValue, payload)
+        ) : dataKey && payloadData[dataKey] !== undefined ? (
+          formatDateTick(payloadData[dataKey], dataKey)
+        ) : (
+          formatDateTick(labelValue, dataKey || "")
+        )}
+      </div>
+    ) : null;
+
+    // Check if we should nest the label inside each item row
+    const shouldNestLabel = payload.length === 1 && indicator !== "dot";
 
     return (
       <div
@@ -183,7 +210,7 @@ const ChartTooltipContent = React.forwardRef<
           className
         )}
       >
-        {!nestLabel ? tooltipLabel : null}
+        {!shouldNestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
@@ -214,7 +241,7 @@ const ChartTooltipContent = React.forwardRef<
                               "w-1": indicator === "line",
                               "w-0 border-[1.5px] border-dashed bg-transparent":
                                 indicator === "dashed",
-                              "my-0.5": nestLabel && indicator === "dashed",
+                              "my-0.5": shouldNestLabel && indicator === "dashed",
                             }
                           )}
                           style={
@@ -229,11 +256,11 @@ const ChartTooltipContent = React.forwardRef<
                     <div
                       className={cn(
                         "flex flex-1 justify-between leading-none",
-                        nestLabel ? "items-end" : "items-center"
+                        shouldNestLabel ? "items-end" : "items-center"
                       )}
                     >
                       <div className="grid gap-1.5">
-                        {nestLabel ? tooltipLabel : null}
+                        {shouldNestLabel ? tooltipLabel : null}
                         <span className="text-muted-foreground">
                           {itemConfig?.label || item.name}
                         </span>
@@ -261,10 +288,10 @@ const ChartLegend = RechartsPrimitive.Legend
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
+  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    hideIcon?: boolean
+    nameKey?: string
+  }
 >(
   (
     { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
@@ -328,8 +355,8 @@ function getPayloadConfigFromPayload(
 
   const payloadPayload =
     "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
+      typeof payload.payload === "object" &&
+      payload.payload !== null
       ? payload.payload
       : undefined
 
