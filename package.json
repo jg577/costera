@@ -9,7 +9,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "tsx lib/seed.ts"
+    "seed": "tsx lib/seed.ts",
+    "test": "jest",
+    "init-time-entries-table": "ts-node scripts/init-time-entries-table.ts",
+    "init-item-selections-table": "ts-node scripts/init-item-selections-table.ts",
+    "process-time-entries": "ts-node scripts/process-csv.ts --type time-entries",
+    "process-time-entries:clean": "ts-node scripts/process-csv.ts --type time-entries --clean",
+    "process-item-selections": "ts-node scripts/process-csv.ts --type item-selections",
+    "process-item-selections:clean": "ts-node scripts/process-csv.ts --type item-selections --clean"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.8",
@@ -48,8 +55,15 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@types/jest": "^29.5.12",
+    "babel-jest": "^29.7.0",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.4.7",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "tsx": "^4.19.2"
   }
 }

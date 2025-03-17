@@ -9,17 +9,48 @@ export type Unicorn = {
   city: string;
   industry: string;
   select_investors: string;
+  continent: string;
+  twitter: string;
+  url: string;
+  year_founded: number;
+  month_founded: number;
+  day_founded: number;
+  round: string;
+  investors: string;
+  growth_rate: number;
 };
 
-export type Result = Record<string, string | number>;
+export type Result = Record<string, any>;
 
+// New types for multi-query support
+export type SqlQuery = {
+  queryName: string;
+  queryDescription: string;
+  sql: string;
+};
+
+export type QueryResult = {
+  queryName: string;
+  queryDescription: string;
+  data: Result[];
+};
+
+// Updated explanation schema for multi-query support
 export const explanationSchema = z.object({
   section: z.string(),
   explanation: z.string(),
 });
-export const explanationsSchema = z.array(explanationSchema);
+
+export const queryExplanationSchema = z.object({
+  queryName: z.string(),
+  sections: z.array(explanationSchema),
+  overallPurpose: z.string()
+});
+
+export const explanationsSchema = z.array(queryExplanationSchema);
 
 export type QueryExplanation = z.infer<typeof explanationSchema>;
+export type QueryFullExplanation = z.infer<typeof queryExplanationSchema>;
 
 // Define the schema for chart configuration
 export const configSchema = z
@@ -30,7 +61,7 @@ export const configSchema = z
         "Describe the chart. What is it showing? What is interesting about the way the data is displayed?",
       ),
     takeaway: z.string().describe("What is the main takeaway from the chart?"),
-    type: z.enum(["bar", "line", "area", "pie"]).describe("Type of chart"),
+    type: z.enum(["bar", "line", "area", "pie", "scatter", "radar", "polar", "gauge", "heatmap", "treemap", "table"]).describe("Type of chart"),
     title: z.string(),
     xKey: z.string().describe("Key for x-axis or category"),
     yKeys: z.array(z.string()).describe("Key(s) for y-axis values this is typically the quantitative column"),
@@ -45,8 +76,45 @@ export const configSchema = z
       .describe("Mapping of data keys to color values for chart elements")
       .optional(),
     legend: z.boolean().describe("Whether to show legend"),
+    // For multiple charts in a dashboard
+    relatedCharts: z.array(
+      z.object({
+        queryName: z.string().describe("Name of the query this chart represents"),
+        description: z.string().describe("Description of what this specific chart shows"),
+        type: z.enum(["bar", "line", "area", "pie", "scatter", "radar", "polar", "gauge", "heatmap", "treemap", "table"]),
+        title: z.string(),
+        xKey: z.string(),
+        yKeys: z.array(z.string()),
+        legend: z.boolean().optional()
+      })
+    ).optional().describe("Additional charts to display alongside the main chart")
   })
   .describe("Chart configuration object");
 
 
 export type Config = z.infer<typeof configSchema>;
+
+// Define the Insights type for data analysis
+export type Insights = {
+  summary: string;
+  keyFindings: Array<{
+    title: string;
+    description: string;
+    importance: "high" | "medium" | "low";
+  }>;
+  recommendedActions: string[];
+  anomalies?: Array<{
+    description: string;
+    possibleExplanations: string[];
+  }>;
+  correlations?: Array<{
+    variables: string[];
+    relationship: string;
+    strength: "strong" | "moderate" | "weak";
+  }>;
+  trends?: Array<{
+    variable: string;
+    description: string;
+    direction: "increasing" | "decreasing" | "fluctuating" | "stable";
+  }>;
+};

@@ -16,18 +16,18 @@ export function QueryWithTooltips({
   const segments = segmentQuery(query, queryExplanations);
 
   return (
-    <div className="font-mono bg-muted rounded-lg overflow-x-auto">
+    <div className="code-text text-sm bg-secondary/30 dark:bg-black/20 p-3 rounded-md overflow-x-auto border border-border">
       {segments.map((segment, index) => (
         <span key={index}>
           {segment.explanation ? (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="inline-block hover:bg-primary/20 transition-colors duration-200 ease-in-out rounded-sm px-1 cursor-help">
+                  <span className="inline-block border-b border-dotted border-primary/40 hover:bg-secondary/80 transition-colors duration-100 px-0.5 cursor-help text-primary font-medium">
                     {segment.text}
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" avoidCollisions={true}  className="max-w-xl font-sans">
+                <TooltipContent side="top" avoidCollisions={true} className="max-w-xl text-xs bg-card border border-border">
                   <p className="whitespace-normal">{segment.explanation}</p>
                 </TooltipContent>
               </Tooltip>

@@ -1,6 +1,7 @@
-import { Config, Result, Unicorn } from "@/lib/types";
+import { Config, Result, Unicorn, QueryResult, Insights } from "@/lib/types";
 import { DynamicChart } from "./dynamic-chart";
 import { SkeletonCard } from "./skeleton-card";
+import { DataInsights } from "./data-insights";
 import {
   TableHeader,
   TableRow,
@@ -15,10 +16,18 @@ export const Results = ({
   results,
   columns,
   chartConfig,
+  insights,
+  queryResults,
+  selectedQueryIndex,
+  loadingInsights,
 }: {
   results: Result[];
   columns: string[];
   chartConfig: Config | null;
+  insights?: Insights | null;
+  queryResults?: QueryResult[];
+  selectedQueryIndex?: number;
+  loadingInsights?: boolean;
 }) => {
   const formatColumnTitle = (title: string) => {
     return title
@@ -53,10 +62,13 @@ export const Results = ({
     return String(value);
   };
 
+  // Check if we have related charts in the config
+  const hasMultipleCharts = chartConfig?.relatedCharts && chartConfig.relatedCharts.length > 0;
+
   return (
     <div className="flex-grow flex flex-col">
       <Tabs defaultValue="table" className="w-full flex-grow flex flex-col">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="table">Table</TabsTrigger>
           <TabsTrigger
             value="charts"
@@ -66,9 +78,15 @@ export const Results = ({
           >
             Chart
           </TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
         </TabsList>
         <TabsContent value="table" className="flex-grow">
           <div className="sm:min-h-[10px] relative">
+            {queryResults && queryResults.length > 0 && selectedQueryIndex !== undefined && (
+              <div className="mb-2 text-sm text-muted-foreground">
+                Showing {queryResults[selectedQueryIndex]?.data.length || 0} results for {queryResults[selectedQueryIndex]?.queryName}
+              </div>
+            )}
             <Table className="min-w-full divide-y divide-border">
               <TableHeader className="bg-secondary sticky top-0 shadow-sm">
                 <TableRow>
@@ -105,9 +123,64 @@ export const Results = ({
         <TabsContent value="charts" className="flex-grow overflow-auto">
           <div className="mt-4">
             {chartConfig && results.length > 0 ? (
-              <DynamicChart chartData={results} chartConfig={chartConfig} />
+              <>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold">{chartConfig.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-2">{chartConfig.description}</p>
+                  <p className="text-sm font-medium">{chartConfig.takeaway}</p>
+                </div>
+
+                <DynamicChart chartData={results} chartConfig={chartConfig} />
+
+                {/* Render related charts if available */}
+                {hasMultipleCharts && chartConfig.relatedCharts && (
+                  <div className="mt-8 space-y-8">
+                    <h3 className="text-lg font-semibold">Additional Insights</h3>
+                    {chartConfig.relatedCharts.map((relatedChart, index) => {
+                      // Find the corresponding query results
+                      const relatedQueryIndex = queryResults?.findIndex(
+                        qr => qr.queryName === relatedChart.queryName
+                      );
+
+                      if (relatedQueryIndex === undefined || relatedQueryIndex < 0 || !queryResults) {
+                        return null;
+                      }
+
+                      const relatedData = queryResults[relatedQueryIndex].data;
+
+                      return (
+                        <div key={index} className="mt-6 pt-6 border-t border-border">
+                          <h4 className="text-md font-medium mb-1">{relatedChart.title}</h4>
+                          <p className="text-sm text-muted-foreground mb-4">{relatedChart.description}</p>
+                          <DynamicChart
+                            chartData={relatedData}
+                            chartConfig={{
+                              ...chartConfig,
+                              ...relatedChart,
+                              description: relatedChart.description || "",
+                              takeaway: ""
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             ) : (
               <SkeletonCard />
+            )}
+          </div>
+        </TabsContent>
+        <TabsContent value="summary" className="flex-grow overflow-auto">
+          <div className="mt-4">
+            {loadingInsights ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <SkeletonCard />
+                <p className="text-muted-foreground mt-4">Analyzing your data...</p>
+              </div>
+            ) : (
+              <DataInsights insights={insights || null} />
             )}
           </div>
         </TabsContent>
