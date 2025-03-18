@@ -7,15 +7,25 @@ export const Header = ({ handleClear }: { handleClear: () => void }) => {
 
   return (
     <div className="flex items-center justify-between mb-8">
-      <div
-        className="flex flex-col cursor-pointer"
-        onClick={() => handleClear()}
-      >
+      <div className="flex flex-col">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center">
           <Database className="h-5 w-5 mr-2 text-primary" />
-          <span>12 Bones Brewing</span>
+          <a
+            href="https://12bones.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors duration-200 hover:text-primary"
+            onClick={(e) => e.stopPropagation()}
+          >
+            12 Bones Brewing
+          </a>
         </h1>
-        <div className="text-xs text-muted-foreground ml-7">Powered by Luna</div>
+        <div
+          className="text-xs text-muted-foreground ml-7 cursor-pointer"
+          onClick={() => handleClear()}
+        >
+          Powered by Luna
+        </div>
       </div>
       <div className="flex items-center justify-center space-x-2">
         <Button
