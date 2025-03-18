@@ -5,9 +5,9 @@ import { ThemeProvider } from "next-themes";
 
 export const metadata = {
   metadataBase: new URL("https://luna"),
-  title: "Luna - SQL Database Assistant",
+  title: "12 Bones Brewing - powered by Luna",
   description:
-    "Chat with your SQL database using natural language powered by Luna.",
+    "Brewery analytics and operational insights powered by Luna's natural language processing.",
 };
 
 export default function RootLayout({
