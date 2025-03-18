@@ -21,7 +21,7 @@ Luna is a Next.js application that allows users to chat with any SQL database us
 
 ## How It Works
 
-1. The user enters a natural language query about unicorn companies.
+1. The user enters a natural language query about the restaurant business.
 2. The application uses GPT-4 to generate an appropriate SQL query.
 3. The SQL query is executed against the PostgreSQL database.
 4. Results are displayed in a table format.
