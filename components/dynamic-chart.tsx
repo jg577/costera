@@ -21,9 +21,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Config, Result } from "@/lib/types";
+import { Config, Result, QueryResult } from "@/lib/types";
 import { Label } from "recharts";
 import { transformDataForMultiLineChart } from "@/lib/rechart-format";
+import { consolidateQueryData, generateConsolidatedColorScheme } from "@/lib/data-consolidation";
 
 function toTitleCase(str: string): string {
   return str
@@ -57,20 +58,15 @@ function formatDateTick(value: any, xKey: string): string {
   const now = new Date();
   const diffInDays = Math.abs(Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)));
 
+  // Always include month and year for consistency
   if (diffInDays < 1) {
-    // For timestamps within the same day, show hours:minutes
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    // For timestamps within the same day, show hours:minutes with month and year
+    return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${date.getFullYear()} ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
   } else if (diffInDays < 7) {
-    // For timestamps within a week, show weekday
-    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  } else if (diffInDays < 31) {
-    // For timestamps within a month, show month/day
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  } else if (diffInDays < 365) {
-    // For timestamps within a year, show month only
-    return date.toLocaleDateString(undefined, { month: 'short' });
+    // For timestamps within a week, show weekday with month and year
+    return `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
   } else {
-    // For timestamps over a year old, show month and year
+    // For all other timestamps, show month and year
     return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
 }
@@ -89,13 +85,76 @@ const colors = [
 export function DynamicChart({
   chartData,
   chartConfig,
+  queryResults,
 }: {
   chartData: Result[];
   chartConfig: Config;
+  queryResults?: QueryResult[];
 }) {
+  // If this is a consolidated view and we have queryResults, use the consolidation logic
+  const processedData = chartConfig.isConsolidated && queryResults && queryResults.length > 1
+    ? consolidateQueryData(queryResults, chartConfig)
+    : chartData;
+
+  // Generate custom colors for consolidated data if needed
+  const consolidatedColors = chartConfig.isConsolidated && queryResults
+    ? generateConsolidatedColorScheme(queryResults, chartConfig)
+    : {};
+
+  // Generate chart color config for the ChartContainer
+  const chartColorConfig: Record<string, { label: string; color: string }> = {};
+  chartConfig.yKeys.forEach((key, index) => {
+    chartColorConfig[key] = {
+      label: key,
+      color: consolidatedColors[key] || colors[index % colors.length],
+    };
+  });
+
+  // Function to ensure time series data is properly sorted (oldest to newest)
+  const ensureChronologicalOrder = (data: Result[], xKey: string): Result[] => {
+    // Skip if this isn't a time-based field
+    const isTimeField = xKey.toLowerCase().includes('date') ||
+      xKey.toLowerCase().includes('time') ||
+      xKey.toLowerCase().includes('day') ||
+      xKey.toLowerCase().includes('month') ||
+      xKey.toLowerCase().includes('year');
+
+    if (!isTimeField || !data.length) return data;
+
+    return [...data].sort((a, b) => {
+      // Convert values to dates if they're date strings
+      let dateA = a[xKey];
+      let dateB = b[xKey];
+
+      // Handle various date formats
+      if (typeof dateA === 'string') {
+        dateA = new Date(dateA).getTime();
+      }
+      if (typeof dateB === 'string') {
+        dateB = new Date(dateB).getTime();
+      }
+
+      // Always sort from older to newer
+      if (typeof dateA === 'number' && typeof dateB === 'number') {
+        return dateA - dateB;
+      }
+
+      // Fallback for non-numeric/non-date values
+      return String(a[xKey]).localeCompare(String(b[xKey]));
+    });
+  };
+
+  // Function to format currency values with dollar signs and commas
+  const formatCurrencyValue = (value: number): string => {
+    return `$${value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
+
   const renderChart = () => {
-    if (!chartData || !chartConfig) return <div>No chart data</div>;
-    const parsedChartData = chartData.map((item) => {
+    if (!processedData || !chartConfig) return <div>No chart data</div>;
+    const parsedChartData = processedData.map((item) => {
       const parsedItem: { [key: string]: any } = {};
       for (const [key, value] of Object.entries(item)) {
         parsedItem[key] = isNaN(Number(value)) ? value : Number(value);
@@ -103,7 +162,8 @@ export function DynamicChart({
       return parsedItem;
     });
 
-    chartData = parsedChartData;
+    // Apply chronological sorting for time-based data
+    let chartData = ensureChronologicalOrder(parsedChartData, chartConfig.xKey);
 
     const processChartData = (data: Result[], chartType: string) => {
       if (chartType === "bar" || chartType === "pie") {
@@ -118,7 +178,69 @@ export function DynamicChart({
     };
 
     chartData = processChartData(chartData, chartConfig.type);
-    // console.log({ chartData, chartConfig });
+
+    // Get custom chart colors (combining any defined colors with consolidated colors)
+    const chartColors = { ...(chartConfig.colors || {}), ...consolidatedColors };
+
+    // Create a getLegendLabel function to handle consolidated data
+    const getLegendLabel = (value: string) => {
+      // If this is a consolidated view and we have labelFields mapping
+      if (chartConfig.isConsolidated &&
+        chartConfig.consolidation?.labelFields &&
+        chartConfig.consolidation.labelFields[value]) {
+        return chartConfig.consolidation.labelFields[value];
+      }
+      // Otherwise, convert to title case
+      return toTitleCase(value);
+    };
+
+    // Create a getBarFill function to handle consolidated data
+    const getBarFill = (entry: any, index: number, key: string) => {
+      // If we have a color mapping for this key, use it
+      if (chartColors[key]) {
+        return chartColors[key];
+      }
+
+      // For consolidated data, try to determine color by source
+      if (chartConfig.isConsolidated && entry && entry.__source) {
+        const sourceKey = entry.__source;
+        if (chartColors[sourceKey]) {
+          return chartColors[sourceKey];
+        }
+      }
+
+      // For prefixed keys in consolidated data
+      if (chartConfig.isConsolidated) {
+        // Extract the prefix (query name) from the key
+        const prefixMatch = key.match(/^([^_]+)_/);
+        if (prefixMatch && prefixMatch[1] && chartColors[prefixMatch[1]]) {
+          return chartColors[prefixMatch[1]];
+        }
+      }
+
+      // Default to the color array
+      return colors[index % colors.length];
+    };
+
+    // Enhanced tooltip formatter for values
+    const formatTooltipValue = (value: any, name: string) => {
+      // Check if the field might represent money (based on name)
+      const isMoney = name.toLowerCase().includes('cost') ||
+        name.toLowerCase().includes('price') ||
+        name.toLowerCase().includes('revenue') ||
+        name.toLowerCase().includes('sales') ||
+        name.toLowerCase().includes('pay') ||
+        name.toLowerCase().includes('income') ||
+        name.toLowerCase().includes('expense') ||
+        name.toLowerCase().includes('profit');
+
+      if (isMoney && typeof value === 'number') {
+        return [formatCurrencyValue(value), getLegendLabel(name as string)];
+      }
+
+      // Default formatting for non-monetary values
+      return [value, getLegendLabel(name as string)];
+    };
 
     switch (chartConfig.type) {
       case "bar":
@@ -142,13 +264,27 @@ export function DynamicChart({
                 position="insideLeft"
               />
             </YAxis>
-            <ChartTooltip content={<ChartTooltipContent />} />
-            {chartConfig.legend && <Legend />}
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) => {
+                    const formattedLabel = formatDateTick(label, chartConfig.xKey);
+                    return `${toTitleCase(chartConfig.xKey)}: ${formattedLabel}`;
+                  }}
+                  formatter={(value, name) => {
+                    return formatTooltipValue(value, name as string);
+                  }}
+                />
+              }
+            />
+            {chartConfig.legend && <Legend formatter={getLegendLabel} />}
             {chartConfig.yKeys.map((key, index) => (
               <Bar
                 key={key}
                 dataKey={key}
-                fill={colors[index % colors.length]}
+                name={key}
+                fill={getBarFill(null, index, key)}
+                fillOpacity={chartConfig.isConsolidated ? 0.8 : 1}
               />
             ))}
           </BarChart>
@@ -162,10 +298,14 @@ export function DynamicChart({
           chartConfig.multipleLines &&
           chartConfig.measurementColumn &&
           chartConfig.yKeys.includes(chartConfig.measurementColumn);
-        // console.log(useTransformedData, "useTransformedData");
-        // const useTransformedData = false;
+
+        // Ensure transformed data is also in chronological order
+        const sortedTransformedData = useTransformedData
+          ? ensureChronologicalOrder(data, xAxisField)
+          : chartData;
+
         return (
-          <LineChart data={useTransformedData ? data : chartData}>
+          <LineChart data={useTransformedData ? sortedTransformedData : chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey={useTransformedData ? chartConfig.xKey : chartConfig.xKey}
@@ -186,15 +326,32 @@ export function DynamicChart({
                 position="insideLeft"
               />
             </YAxis>
-            <ChartTooltip content={<ChartTooltipContent />} />
-            {chartConfig.legend && <Legend />}
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) => {
+                    const formattedLabel = formatDateTick(label, chartConfig.xKey);
+                    return `${toTitleCase(chartConfig.xKey)}: ${formattedLabel}`;
+                  }}
+                  formatter={(value, name) => {
+                    return formatTooltipValue(value, name as string);
+                  }}
+                />
+              }
+            />
+            {chartConfig.legend && <Legend formatter={getLegendLabel} />}
             {useTransformedData
               ? lineFields.map((key, index) => (
                 <Line
                   key={key}
                   type="monotone"
                   dataKey={key}
-                  stroke={colors[index % colors.length]}
+                  name={key}
+                  stroke={getBarFill(null, index, key)}
+                  strokeWidth={2}
+                  dot={{ r: 4, strokeWidth: 1 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  connectNulls={true}
                 />
               ))
               : chartConfig.yKeys.map((key, index) => (
@@ -202,7 +359,12 @@ export function DynamicChart({
                   key={key}
                   type="monotone"
                   dataKey={key}
-                  stroke={colors[index % colors.length]}
+                  name={key}
+                  stroke={getBarFill(null, index, key)}
+                  strokeWidth={2}
+                  dot={{ r: 4, strokeWidth: 1 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  connectNulls={true}
                 />
               ))}
           </LineChart>
@@ -216,15 +378,30 @@ export function DynamicChart({
               tickFormatter={(value) => formatDateTick(value, chartConfig.xKey)}
             />
             <YAxis />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            {chartConfig.legend && <Legend />}
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) => {
+                    const formattedLabel = formatDateTick(label, chartConfig.xKey);
+                    return `${toTitleCase(chartConfig.xKey)}: ${formattedLabel}`;
+                  }}
+                  formatter={(value, name) => {
+                    return formatTooltipValue(value, name as string);
+                  }}
+                />
+              }
+            />
+            {chartConfig.legend && <Legend formatter={getLegendLabel} />}
             {chartConfig.yKeys.map((key, index) => (
               <Area
                 key={key}
                 type="monotone"
                 dataKey={key}
-                fill={colors[index % colors.length]}
-                stroke={colors[index % colors.length]}
+                name={key}
+                fill={getBarFill(null, index, key)}
+                stroke={getBarFill(null, index, key)}
+                fillOpacity={0.6}
+                connectNulls={true}
               />
             ))}
           </AreaChart>
@@ -239,16 +416,25 @@ export function DynamicChart({
               cx="50%"
               cy="50%"
               outerRadius={120}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             >
-              {chartData.map((_, index) => (
+              {chartData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={colors[index % colors.length]}
+                  fill={getBarFill(entry, index, chartConfig.yKeys[0])}
                 />
               ))}
             </Pie>
-            <ChartTooltip content={<ChartTooltipContent />} />
-            {chartConfig.legend && <Legend />}
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value, name) => {
+                    return formatTooltipValue(value, name as string);
+                  }}
+                />
+              }
+            />
+            {chartConfig.legend && <Legend formatter={getLegendLabel} />}
           </PieChart>
         );
       default:
@@ -257,29 +443,8 @@ export function DynamicChart({
   };
 
   return (
-    <div className="w-full flex flex-col justify-center items-center">
-      <h2 className="text-lg font-bold mb-2">{chartConfig.title}</h2>
-      {chartConfig && chartData.length > 0 && (
-        <ChartContainer
-          config={chartConfig.yKeys.reduce(
-            (acc, key, index) => {
-              acc[key] = {
-                label: key,
-                color: colors[index % colors.length],
-              };
-              return acc;
-            },
-            {} as Record<string, { label: string; color: string }>,
-          )}
-          className="h-[320px] w-full"
-        >
-          {renderChart()}
-        </ChartContainer>
-      )}
-      <div className="w-full">
-        <p className="mt-4 text-sm">{chartConfig.description}</p>
-        <p className="mt-4 text-sm">{chartConfig.takeaway}</p>
-      </div>
-    </div>
+    <ChartContainer config={chartColorConfig}>
+      {renderChart()}
+    </ChartContainer>
   );
 }

@@ -11,8 +11,49 @@ import {
   Table,
 } from "./ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { ArrowRight, ArrowLeftRight, BarChart4, TrendingUp } from "lucide-react";
+import { ArrowRight, ArrowLeftRight, BarChart4, TrendingUp, Combine } from "lucide-react";
 import { useState } from "react";
+import { consolidateQueryData } from "@/lib/data-consolidation";
+
+// Function to ensure time series data is properly sorted (oldest to newest)
+const ensureChronologicalOrder = (data: Result[], columns: string[]): Result[] => {
+  if (!data.length) return data;
+
+  // Find any date/time columns (first match)
+  const timeColumn = columns.find(col =>
+    col.toLowerCase().includes('date') ||
+    col.toLowerCase().includes('time') ||
+    col.toLowerCase().includes('day') ||
+    col.toLowerCase().includes('month') ||
+    col.toLowerCase().includes('year')
+  );
+
+  // If no time-based columns, return the original data
+  if (!timeColumn) return data;
+
+  // Sort by the time column from older to newer
+  return [...data].sort((a, b) => {
+    // Convert values to dates if they're date strings
+    let dateA = a[timeColumn];
+    let dateB = b[timeColumn];
+
+    // Handle various date formats
+    if (typeof dateA === 'string') {
+      dateA = new Date(dateA).getTime();
+    }
+    if (typeof dateB === 'string') {
+      dateB = new Date(dateB).getTime();
+    }
+
+    // Always sort from older to newer
+    if (typeof dateA === 'number' && typeof dateB === 'number') {
+      return dateA - dateB;
+    }
+
+    // Fallback for non-numeric/non-date values
+    return String(a[timeColumn]).localeCompare(String(b[timeColumn]));
+  });
+};
 
 export const Results = ({
   results,
@@ -64,6 +105,9 @@ export const Results = ({
     return String(value);
   };
 
+  // Check if we have a consolidated view config
+  const isConsolidatedView = chartConfig?.isConsolidated === true && queryResults && queryResults.length > 1;
+
   // Check if we have related charts in the config
   const hasMultipleCharts = chartConfig?.relatedCharts && chartConfig.relatedCharts.length > 0;
 
@@ -84,6 +128,38 @@ export const Results = ({
       .slice(0, 3);
   };
 
+  // Get appropriate table columns
+  const getTableColumns = () => {
+    if (isConsolidatedView && chartConfig?.consolidation?.labelFields) {
+      // Get consolidated data (without chronological sorting at this stage)
+      const rawData = isConsolidatedView && chartConfig && queryResults
+        ? consolidateQueryData(queryResults, chartConfig)
+        : results;
+
+      if (rawData.length > 0) {
+        // Get all columns except those starting with '__' (metadata)
+        return Object.keys(rawData[0]).filter(col => !col.startsWith('__'));
+      }
+    }
+    return columns;
+  };
+
+  // Get the columns first
+  const tableColumns = getTableColumns();
+
+  // Get consolidated table data if applicable and ensure chronological order
+  const getTableData = () => {
+    const data = isConsolidatedView && chartConfig && queryResults
+      ? consolidateQueryData(queryResults, chartConfig)
+      : results;
+
+    // Ensure chronological ordering for the table data
+    return ensureChronologicalOrder(data, tableColumns);
+  };
+
+  // Now get the sorted data
+  const tableData = getTableData();
+
   return (
     <div className="flex-grow flex flex-col">
       <Tabs defaultValue="charts" className="w-full flex-grow flex flex-col">
@@ -101,7 +177,11 @@ export const Results = ({
         </TabsList>
         <TabsContent value="table" className="flex-grow">
           <div className="sm:min-h-[10px] relative">
-            {queryResults && queryResults.length > 0 && selectedQueryIndex !== undefined && (
+            {isConsolidatedView ? (
+              <div className="mb-2 text-sm text-muted-foreground">
+                Showing consolidated data from {chartConfig?.consolidation?.sourceQueries?.length || queryResults?.length} queries
+              </div>
+            ) : queryResults && queryResults.length > 0 && selectedQueryIndex !== undefined && (
               <div className="mb-2 text-sm text-muted-foreground">
                 Showing {queryResults[selectedQueryIndex]?.data.length || 0} results for {queryResults[selectedQueryIndex]?.queryName}
               </div>
@@ -109,28 +189,27 @@ export const Results = ({
             <Table className="min-w-full divide-y divide-border">
               <TableHeader className="bg-secondary sticky top-0 shadow-sm">
                 <TableRow>
-                  {columns.map((column, index) => (
+                  {tableColumns.map((column, index) => (
                     <TableHead
                       key={index}
                       className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                     >
-                      {formatColumnTitle(column)}
+                      {isConsolidatedView && chartConfig?.consolidation?.labelFields && chartConfig.consolidation.labelFields[column]
+                        ? chartConfig.consolidation.labelFields[column]
+                        : formatColumnTitle(column)}
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody className="bg-card divide-y divide-border">
-                {results.map((company, index) => (
+                {tableData.map((row, index) => (
                   <TableRow key={index} className="hover:bg-muted">
-                    {columns.map((column, cellIndex) => (
+                    {tableColumns.map((column, cellIndex) => (
                       <TableCell
                         key={cellIndex}
                         className="px-6 py-4 whitespace-nowrap text-sm text-foreground"
                       >
-                        {formatCellValue(
-                          column,
-                          company[column as keyof Unicorn],
-                        )}
+                        {formatCellValue(column, row[column])}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -143,8 +222,27 @@ export const Results = ({
           <div className="mt-4">
             {chartConfig && results.length > 0 ? (
               <>
-                {/* Comparison View */}
-                {isComparisonQuery && chartConfig.relatedCharts ? (
+                {/* Consolidated View */}
+                {isConsolidatedView ? (
+                  <div>
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2">
+                        <Combine className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">
+                          {chartConfig.title} (Consolidated View)
+                        </h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{chartConfig.description}</p>
+                      <p className="text-sm font-medium">{chartConfig.takeaway}</p>
+                    </div>
+
+                    <DynamicChart
+                      chartData={results}
+                      chartConfig={chartConfig}
+                      queryResults={queryResults}
+                    />
+                  </div>
+                ) : isComparisonQuery && chartConfig.relatedCharts ? (
                   <div>
                     <div className="mb-4">
                       <div className="flex items-center gap-2">

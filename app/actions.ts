@@ -384,19 +384,44 @@ export const generateChartConfig = async (
       - 'treemap' - Treemap (good for hierarchical data)
       - 'table' - Table (when data is better shown as a table than a chart)
       
-      IMPORTANT - COMPARISON QUERIES:
-      When the user asks for a COMPARISON between datasets (e.g., "compare sales by category", "show difference between morning and evening shifts", etc.):
-      1. Use the 'relatedCharts' field to create a side-by-side comparison view
-      2. The main chart should show one dataset, and the first relatedChart should show the other dataset for comparison
-      3. Make sure both charts have the same type (bar, line, etc.) to facilitate easy comparison
-      4. Use similar scales and axes where possible
-      5. Include clear titles that indicate what each chart is showing
-      6. In the description, highlight the key differences or similarities between the datasets
+      DATA FORMATTING REQUIREMENTS:
+      1. TIME SERIES: For any data with dates or times, ALWAYS ensure the data is sorted chronologically FROM OLDER TO NEWER dates (oldest first, most recent last).
+         - Time must ALWAYS move forward in charts - data points should be in strict chronological order.
+         - If data for certain time periods is missing, SKIP those periods rather than breaking chronological order.
+         - Time labels MUST include BOTH month and year (e.g., "Jan 2023", "Feb 2023") for clear time reference.
+         - Never abbreviate years or use ambiguous date formats.
+      2. MONETARY VALUES: For any costs, revenue, sales, or other monetary amounts, make sure the chart labels include dollar signs ($).
+      3. NUMBER FORMATTING: All numeric values should be properly formatted with commas for thousands (e.g., $1,234.56 instead of $1234.56).
       
-      For multiple query results, you can suggest:
-      1. A single chart that combines data from multiple queries
-      2. Multiple charts (one per query) with clear explanations of what each shows
-      3. A dashboard layout with multiple visualizations
+      IMPORTANT - CONSOLIDATED VIEWS:
+      When there are multiple queries, PREFER creating a consolidated view that combines data from all queries into a single chart, table and summary.
+      1. Use the 'isConsolidated' field and set it to true to indicate this is a consolidated view
+      2. In the 'consolidation' object, provide details about how the data should be combined:
+         - 'method': How to combine data ('merge', 'stack', 'join')
+         - 'keyField': Common field to join on, if applicable
+         - 'valueFields': Which fields contain the values to be consolidated
+         - 'labelFields': **REQUIRED** - A mapping of original field names to display labels (e.g., {"total_revenue": "Total Revenue ($)", "employee_cost": "Employee Cost ($)"})
+         - 'sourceQueries': Names of the queries being consolidated
+      3. Create clear labels and color coding to distinguish data from different queries
+      4. Provide a clear explanation of what the consolidated view shows in the description
+      
+      CRITICAL: The 'labelFields' property in the consolidation object is REQUIRED and must be a non-empty object that maps 
+      field names from the source data to their human-readable display labels. Include ALL value fields and any other important 
+      fields that will be displayed in the chart or table.
+      
+      ADDITIONAL CHART REQUIREMENTS:
+      1. For time-based charts (especially line and area charts), data MUST be arranged FROM OLDER TO NEWER dates (oldest first, most recent last).
+         - Missing time periods should be SKIPPED while maintaining the forward progression of time.
+         - Time must ALWAYS move forward - never display dates out of chronological order.
+         - ALWAYS include BOTH month and year in axis labels and tooltips for time data (e.g., "Jan 2023", "Feb 2023").
+         - For more granular time data, include day, month, and year (e.g., "15 Jan 2023").
+      2. For monetary values, include dollar signs ($) in axis labels and legends.
+      3. For any field that represents money (costs, sales, revenue, etc.), include "($)" in the label name.
+      4. Use descriptive axis labels that clearly indicate what the data represents.
+      
+      For multiple query results that CANNOT be consolidated, you can suggest:
+      1. Multiple charts (one per query) with clear explanations of what each shows
+      2. A dashboard layout with multiple visualizations
       
       If the data combines information from multiple tables (through JOINs or as separate queries), ensure your chart configuration highlights these relationships effectively. Consider how cost data, sales data, and employee data can be visually correlated when appropriate.
       
@@ -409,7 +434,15 @@ export const generateChartConfig = async (
       Query Results:
       ${formattedResults}
 
-      Provide a complete chart configuration for this data. If multiple visualizations would be better than a single one, provide configurations for each.`,
+      When there are multiple queries, STRONGLY PREFER creating a consolidated view that combines all the data into a single comprehensive visualization rather than separate charts. Provide a complete chart configuration for this data.
+
+      REMEMBER: 
+      1. If you create a consolidated view (isConsolidated: true), you MUST include the 'labelFields' object in the consolidation configuration that maps field names to human-readable labels.
+      2. For time series data, ensure the data is sorted chronologically FROM OLDER TO NEWER dates (oldest first, most recent last).
+      3. Time must ALWAYS move forward - if data is missing for certain periods, SKIP those periods rather than breaking chronological order.
+      4. All time labels MUST include BOTH month and year (e.g., "Jan 2023") for clarity.
+      5. For monetary values (costs, revenue, sales), include dollar signs ($) in labels and format numbers with commas for thousands.
+      6. Make sure all monetary field labels include "($)" to indicate they represent dollar amounts.`,
     });
     return result.object;
   } catch (e) {
@@ -452,7 +485,12 @@ export const generateDataInsights = async (
         variable: z.string().describe("The variable showing a trend"),
         description: z.string().describe("Description of the trend"),
         direction: z.enum(["increasing", "decreasing", "fluctuating", "stable"]).describe("The direction of the trend")
-      })).optional().describe("Identified trends in the data over time or categories")
+      })).optional().describe("Identified trends in the data over time or categories"),
+      crossQueryInsights: z.array(z.object({
+        title: z.string().describe("A brief title for the cross-query insight"),
+        description: z.string().describe("A detailed explanation of how the different data sources relate to each other"),
+        relevance: z.enum(["primary", "secondary"]).describe("Whether this is a primary or secondary insight")
+      })).optional().describe("Insights that specifically connect or combine data from multiple queries")
     });
 
     const result = await generateObject({
@@ -465,13 +503,14 @@ export const generateDataInsights = async (
       - item_selection_details: Contains food/beverage orders, prices, and dining details
       - food_costs: Contains inventory costs, product details, and sales information
       
-      Provide a thorough analysis that includes:
+      Provide a comprehensive analysis that includes:
       1. A concise summary of what the data shows
       2. Key findings and their business implications
       3. Recommended actions based on these findings
       4. Any anomalies or unusual patterns
       5. Notable correlations between different variables
       6. Trends identified in the data
+      7. Cross-query insights that connect data from multiple sources
       
       Focus on actionable insights that would be valuable to a restaurant business. Some important business areas to consider include:
       - Labor costs and efficiency
@@ -482,7 +521,20 @@ export const generateDataInsights = async (
       
       Be specific and reference actual values from the data when possible. Avoid vague generalizations.
       
-      For multiple query results, analyze each dataset individually and then provide cross-query insights that combine information from different tables when relevant. If the queries include data from multiple tables (like time_entries, item_selection_details, and food_costs), look for relationships between employee data, sales data, and cost data.
+      MULTIPLE QUERY ANALYSIS:
+      When analyzing multiple query results, focus on:
+      1. Analyzing individual datasets for their specific insights
+      2. Creating CROSS-QUERY INSIGHTS that connect data across different tables
+      3. Looking for cause-and-effect relationships between different metrics
+      4. Identifying how employee data, sales data, and cost data interact with each other
+      5. Finding holistic business patterns that would not be visible in any single query alone
+      
+      For multiple tables (like time_entries, item_selection_details, and food_costs), emphasize how they relate to each other. For example:
+      - How labor patterns affect sales performance
+      - How inventory costs correlate with menu item popularity
+      - How staffing levels impact customer experience metrics
+      
+      In your crossQueryInsights section, focus specifically on insights that require data from multiple queries to discover.
       `,
       prompt: `Analyze the following SQL query results and provide meaningful insights, patterns, and recommendations for this restaurant business.
 
@@ -491,7 +543,7 @@ export const generateDataInsights = async (
       Query Results:
       ${formattedResults}
 
-      Provide a detailed analysis with actionable insights.`,
+      Provide a detailed analysis with actionable insights, including cross-query connections where multiple data sources are present.`,
     });
 
     return result.object;

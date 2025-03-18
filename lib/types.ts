@@ -76,6 +76,15 @@ export const configSchema = z
       .describe("Mapping of data keys to color values for chart elements")
       .optional(),
     legend: z.boolean().describe("Whether to show legend"),
+    // For consolidated views
+    isConsolidated: z.boolean().describe("Whether this chart represents a consolidated view of multiple queries").optional(),
+    consolidation: z.object({
+      method: z.enum(["merge", "stack", "join"]).describe("Method used to consolidate data"),
+      keyField: z.string().describe("Common field used to join/merge data").optional(),
+      valueFields: z.array(z.string()).describe("Fields containing values to be consolidated"),
+      labelFields: z.record(z.string(), z.string()).describe("Mapping of original field names to display labels"),
+      sourceQueries: z.array(z.string()).describe("Names of queries that are consolidated in this view")
+    }).optional().describe("Configuration for how multiple query results are consolidated"),
     // For multiple charts in a dashboard
     relatedCharts: z.array(
       z.object({
@@ -116,5 +125,10 @@ export type Insights = {
     variable: string;
     description: string;
     direction: "increasing" | "decreasing" | "fluctuating" | "stable";
+  }>;
+  crossQueryInsights?: Array<{
+    title: string;
+    description: string;
+    relevance: "primary" | "secondary";
   }>;
 };

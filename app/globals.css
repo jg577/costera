@@ -30,11 +30,23 @@
     --input: 210 20% 90%;
     --ring: 215 50% 40%;
     --radius: 0.5rem;
-    --chart-1: 215 50% 40%;
-    --chart-2: 215 40% 50%;
-    --chart-3: 205 40% 50%;
-    --chart-4: 195 40% 50%;
-    --chart-5: 185 40% 50%;
+    /* Distinctly different color palette for charts - Light theme */
+    --chart-1: 215 70% 40%;
+    /* Strong blue */
+    --chart-2: 25 85% 55%;
+    /* Orange */
+    --chart-3: 145 60% 45%;
+    /* Green */
+    --chart-4: 325 70% 50%;
+    /* Pink/Magenta */
+    --chart-5: 260 70% 55%;
+    /* Purple */
+    --chart-6: 190 90% 45%;
+    /* Cyan */
+    --chart-7: 0 80% 55%;
+    /* Red */
+    --chart-8: 50 95% 50%;
+    /* Yellow/Gold */
   }
 
   .dark {
@@ -57,11 +69,24 @@
     --border: 215 20% 20%;
     --input: 215 20% 20%;
     --ring: 215 50% 50%;
-    --chart-1: 215 50% 50%;
-    --chart-2: 205 40% 50%;
-    --chart-3: 195 40% 50%;
-    --chart-4: 185 40% 50%;
-    --chart-5: 175 40% 50%;
+    --radius: 0.5rem;
+    /* Distinctly different color palette for charts - Dark theme */
+    --chart-1: 215 80% 60%;
+    /* Bright blue */
+    --chart-2: 25 95% 60%;
+    /* Bright orange */
+    --chart-3: 145 70% 50%;
+    /* Bright green */
+    --chart-4: 325 80% 60%;
+    /* Bright pink */
+    --chart-5: 260 80% 65%;
+    /* Bright purple */
+    --chart-6: 190 95% 55%;
+    /* Bright cyan */
+    --chart-7: 0 90% 65%;
+    /* Bright red */
+    --chart-8: 50 100% 60%;
+    /* Bright yellow/gold */
   }
 }
 
