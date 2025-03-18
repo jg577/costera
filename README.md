@@ -4,7 +4,7 @@
 
 ## More Than Just SQL - Your Complete Office Companion
 
-Luna is your intelligent office assistant that transforms how your entire team works with business data. Beyond just database queries, Luna helps with report generation, strategic insights, team collaboration, and informed decision-making - all through natural conversation. No more technical barriers between your business questions and actionable answers.
+Luna is your intelligent office assistant that transforms how your entire team works with business data. Beyond just database queries, Luna helps with strategic insights, team collaboration, and informed decision-making - all through natural conversation. No more technical barriers between your business questions and actionable answers.
 
 ## What Can Luna Do For Your Office?
 
