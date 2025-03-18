@@ -7,13 +7,16 @@ export const Header = ({ handleClear }: { handleClear: () => void }) => {
 
   return (
     <div className="flex items-center justify-between mb-8">
-      <h1
-        className="text-2xl sm:text-3xl font-bold text-foreground flex items-center cursor-pointer"
+      <div
+        className="flex flex-col cursor-pointer"
         onClick={() => handleClear()}
       >
-        <Database className="h-5 w-5 mr-2 text-primary" />
-        <span>Ask Luna</span>
-      </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center">
+          <Database className="h-5 w-5 mr-2 text-primary" />
+          <span>12 Bones Brewing</span>
+        </h1>
+        <div className="text-xs text-muted-foreground ml-7">Powered by Luna</div>
+      </div>
       <div className="flex items-center justify-center space-x-2">
         <Button
           variant="ghost"

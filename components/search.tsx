@@ -37,7 +37,7 @@ export const Search = ({
           <div className="container-box flex items-center">
             <Input
               type="text"
-              placeholder={originalQuery ? "Refine your question or ask something new..." : "Ask a question about your data..."}
+              placeholder={originalQuery ? "Refine your question or ask something new..." : "Ask about your business operations or performance..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               className="friendly-input border-0 shadow-none bg-transparent px-0 focus:ring-0 h-9"
