@@ -13,7 +13,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ArrowRight, ArrowLeftRight, BarChart4, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import { CombinedComparisonChart } from "./CombinedComparisonChart";
 
 export const Results = ({
   results,
@@ -74,9 +73,6 @@ export const Results = ({
       queryResults && queryResults.length > 1 &&
       (queryResults[0]?.queryDescription.toLowerCase().includes('compar') ||
         chartConfig?.relatedCharts?.length === 1)); // Simple comparison usually has one related chart
-
-  // For displaying combined charts (both datasets on one chart)
-  const [showCombinedChart, setShowCombinedChart] = useState(false);
 
   // Extract key metrics for simplified summary
   const getKeyMetrics = () => {
@@ -157,89 +153,48 @@ export const Results = ({
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">{chartConfig.description}</p>
                       <p className="text-sm font-medium">{chartConfig.takeaway}</p>
-
-                      {/* Toggle between side-by-side and combined chart views */}
-                      <div className="flex items-center mt-4 mb-2">
-                        <div className="bg-muted rounded-md p-1 flex">
-                          <button
-                            className={`px-3 py-1 text-sm rounded-md transition-colors ${!showCombinedChart
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            onClick={() => setShowCombinedChart(false)}
-                          >
-                            Side by Side
-                          </button>
-                          <button
-                            className={`px-3 py-1 text-sm rounded-md transition-colors ${showCombinedChart
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            onClick={() => setShowCombinedChart(true)}
-                          >
-                            Combined Chart
-                          </button>
-                        </div>
-                      </div>
                     </div>
 
-                    {showCombinedChart ? (
-                      /* Combined Chart View */
+                    {/* Side-by-side View */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                      {/* First chart (main chart) */}
                       <div className="border rounded-lg p-4 shadow-sm">
-                        <h4 className="font-medium mb-3">Combined Comparison</h4>
-                        {chartConfig.relatedCharts && chartConfig.relatedCharts.length > 0 && (
-                          <CombinedComparisonChart
-                            mainData={results}
-                            mainConfig={chartConfig}
-                            relatedData={queryResults && queryResults.length > 1 ?
-                              queryResults.find(qr => qr.queryName === chartConfig.relatedCharts![0].queryName)?.data || [] :
-                              []}
-                            relatedConfig={chartConfig.relatedCharts[0]}
-                          />
-                        )}
+                        <h4 className="font-medium mb-3">{chartConfig.title}</h4>
+                        <DynamicChart chartData={results} chartConfig={chartConfig} />
                       </div>
-                    ) : (
-                      /* Side-by-side View */
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                        {/* First chart (main chart) */}
-                        <div className="border rounded-lg p-4 shadow-sm">
-                          <h4 className="font-medium mb-3">{chartConfig.title}</h4>
-                          <DynamicChart chartData={results} chartConfig={chartConfig} />
-                        </div>
 
-                        {/* Second chart (related chart) */}
-                        {chartConfig.relatedCharts.map((relatedChart, index) => {
-                          // Only display the first related chart in the side-by-side view
-                          if (index > 0) return null;
+                      {/* Second chart (related chart) */}
+                      {chartConfig.relatedCharts.map((relatedChart, index) => {
+                        // Only display the first related chart in the side-by-side view
+                        if (index > 0) return null;
 
-                          // Find the corresponding query results
-                          const relatedQueryIndex = queryResults?.findIndex(
-                            qr => qr.queryName === relatedChart.queryName
-                          );
+                        // Find the corresponding query results
+                        const relatedQueryIndex = queryResults?.findIndex(
+                          qr => qr.queryName === relatedChart.queryName
+                        );
 
-                          if (relatedQueryIndex === undefined || relatedQueryIndex < 0 || !queryResults) {
-                            return null;
-                          }
+                        if (relatedQueryIndex === undefined || relatedQueryIndex < 0 || !queryResults) {
+                          return null;
+                        }
 
-                          const relatedData = queryResults[relatedQueryIndex].data;
+                        const relatedData = queryResults[relatedQueryIndex].data;
 
-                          return (
-                            <div key={index} className="border rounded-lg p-4 shadow-sm">
-                              <h4 className="font-medium mb-3">{relatedChart.title}</h4>
-                              <DynamicChart
-                                chartData={relatedData}
-                                chartConfig={{
-                                  ...chartConfig,
-                                  ...relatedChart,
-                                  description: relatedChart.description || "",
-                                  takeaway: ""
-                                }}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                        return (
+                          <div key={index} className="border rounded-lg p-4 shadow-sm">
+                            <h4 className="font-medium mb-3">{relatedChart.title}</h4>
+                            <DynamicChart
+                              chartData={relatedData}
+                              chartConfig={{
+                                ...chartConfig,
+                                ...relatedChart,
+                                description: relatedChart.description || "",
+                                takeaway: ""
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ) : (
                   // Standard single chart view
