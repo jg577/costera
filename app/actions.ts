@@ -105,6 +105,21 @@ export const generateQuery = async (input: string) => {
       14 created_at            timestamp without time zone         NO
       15 updated_at            timestamp without time zone         NO
 
+      Table: menu_mappings
+      # column_name            data_type                           is_nullable
+      1  id                    text                                NO (PRIMARY KEY)
+      2  index                 text                                YES
+      3  item_name             text                                NO
+      4  menu_group            text                                YES
+      5  business_line         text                                YES
+      6  category              text                                YES
+      7  ounces                numeric(10,2)                       YES
+      8  product_name          text                                YES
+      9  product_type          text                                YES
+      10 package_amount        text                                YES
+      11 created_at            timestamp without time zone         NO
+      12 updated_at            timestamp without time zone         NO
+
     Only retrieval queries are allowed.
 
     EVERY QUERY SHOULD RETURN QUANTITATIVE DATA THAT CAN BE PLOTTED ON A CHART! There should always be at least two columns. If the user asks for a single column, return the column and the count of the column.
@@ -112,11 +127,58 @@ export const generateQuery = async (input: string) => {
     The time_entries table contains information about employee work shifts, including the employee details, hours worked, wages, and tips.
     The item_selection_details table contains information about food/beverage orders, their prices, and details about the dining experience.
     The food_costs table contains information about food inventory costs, including product details, pricing, and inventory information.
+    The menu_mappings table provides standardized mappings between the adhoc menu item names in item_selection_details.menu_item and standardized product names, essential for accurate analytics.
     
     The tables can be joined on relevant fields for cross-table analysis:
     - time_entries and item_selection_details can be joined on location fields for location-based analysis.
     - item_selection_details and food_costs can be joined on product information (like item_name, sku) for cost vs. sales analysis.
-    - All three tables can be used together for comprehensive analyses of operations, costs, and sales.
+    - item_selection_details and menu_mappings should be joined (item_selection_details.menu_item = menu_mappings.item_name) to standardize menu items for accurate analytics.
+    - All tables can be used together for comprehensive analyses of operations, costs, and sales.
+
+    Example standard query for menu item analysis using menu_mappings:
+    
+    SELECT mp.product_name, SUM(isd.total_price) AS total_sales
+    FROM item_selection_details isd 
+    JOIN menu_mappings mp ON isd.menu_item = mp.item_name 
+    GROUP BY mp.product_name 
+    ORDER BY total_sales DESC
+    
+    This query transforms the adhoc menu_item names into standardized product_name values for accurate analysis.
+
+    For time series analysis across tables (especially time_entries, food_costs, and item_selection_details):
+    - First group by time periods (day, week, month) within each table
+    - Then join the aggregated results on the common time periods
+    - This approach is more efficient and produces cleaner results than joining raw tables
+    
+    Example of time series join with proper grouping:
+    
+    -- First query: Get monthly time entries data
+    WITH monthly_time AS (
+      SELECT 
+        DATE_TRUNC('month', start_time) AS month,
+        SUM(total_hours) AS total_hours,
+        AVG(wage) AS avg_wage
+      FROM time_entries
+      GROUP BY DATE_TRUNC('month', start_time)
+    ),
+    -- Second: Get monthly sales data
+    monthly_sales AS (
+      SELECT 
+        DATE_TRUNC('month', sent_date) AS month,
+        SUM(total_price) AS total_sales
+      FROM item_selection_details
+      GROUP BY DATE_TRUNC('month', sent_date)
+    )
+    -- Join the aggregated monthly data
+    SELECT 
+      mt.month,
+      mt.total_hours,
+      mt.avg_wage,
+      ms.total_sales,
+      (ms.total_sales / NULLIF(mt.total_hours, 0)) AS sales_per_hour
+    FROM monthly_time mt
+    JOIN monthly_sales ms ON mt.month = ms.month
+    ORDER BY mt.month
 
     IMPORTANT: You have two options for generating queries:
     
@@ -321,12 +383,43 @@ export const explainQuery = async (input: string, queries: { queryName: string; 
       14 created_at            timestamp without time zone         NO
       15 updated_at            timestamp without time zone         NO
 
+      Table: menu_mappings
+      # column_name            data_type                           is_nullable
+      1  id                    text                                NO (PRIMARY KEY)
+      2  index                 text                                YES
+      3  item_name             text                                NO
+      4  menu_group            text                                YES
+      5  business_line         text                                YES
+      6  category              text                                YES
+      7  ounces                numeric(10,2)                       YES
+      8  product_name          text                                YES
+      9  product_type          text                                YES
+      10 package_amount        text                                YES
+      11 created_at            timestamp without time zone         NO
+      12 updated_at            timestamp without time zone         NO
+
     When you explain you must take a section of the query, and then explain it. Each "section" should be unique. So in a query like: "SELECT * FROM time_entries limit 20", the sections could be "SELECT *", "FROM time_entries", "LIMIT 20".
-    If a section doesnt have any explanation, include it, but leave the explanation empty.
 
     The time_entries table contains information about employee work shifts, including the employee details, hours worked, wages, and tips.
     The item_selection_details table contains information about food/beverage orders, their prices, and details about the dining experience.
     The food_costs table contains information about food inventory costs, including product details, pricing, and inventory information.
+    The menu_mappings table provides standardized mappings between the adhoc menu item names in item_selection_details.menu_item and standardized product names, essential for accurate analytics.
+
+    Example standard query for menu item analysis using menu_mappings:
+    
+    SELECT mp.product_name, SUM(isd.total_price) AS total_sales
+    FROM item_selection_details isd 
+    JOIN menu_mappings mp ON isd.menu_item = mp.item_name 
+    GROUP BY mp.product_name 
+    ORDER BY total_sales DESC
+    
+    This query transforms the adhoc menu_item names into standardized product_name values for accurate analysis.
+    
+    For time series analysis across tables (especially time_entries, food_costs, and item_selection_details):
+    - First group by time periods (day, week, month) within each table
+    - Then join the aggregated results on the common time periods
+    - This approach is more efficient and produces cleaner results than joining raw tables
+    - Use functions like DATE_TRUNC('month', timestamp_column) for consistent grouping
 
     When explaining JOIN operations, be clear about why the joins were necessary based on the user's query - explain how the tables are related in the context of the query and what business question required pulling data from multiple tables. Make sure to explain join conditions in a way that's accessible to non-technical users.
     
@@ -370,6 +463,23 @@ export const generateChartConfig = async (
       - time_entries: Contains employee work shift data, hours, wages, and tips
       - item_selection_details: Contains food/beverage orders, prices, and dining details
       - food_costs: Contains inventory costs, product details, and sales information
+      - menu_mappings: Contains standardized mappings between adhoc menu item names and consistent product names
+
+      For menu item analytics, the standard approach is to join item_selection_details with menu_mappings:
+      
+      SELECT mp.product_name, SUM(isd.total_price) AS total_sales
+      FROM item_selection_details isd 
+      JOIN menu_mappings mp ON isd.menu_item = mp.item_name 
+      GROUP BY mp.product_name 
+      ORDER BY total_sales DESC
+      
+      This allows for standardized product analysis and visualization rather than working with inconsistent menu_item values.
+
+      For time series analysis across tables (especially time_entries, food_costs, and item_selection_details):
+      - First group by time periods (day, week, month) within each table
+      - Then join the aggregated results on the common time periods
+      - This approach is more efficient and produces cleaner visualizations than joining raw tables
+      - Example: GROUP BY DATE_TRUNC('month', timestamp_column)
 
       Chart Options:
       - 'line' - Line Chart (good for time series or continuous data)
@@ -501,7 +611,23 @@ export const generateDataInsights = async (
       The data comes from a restaurant management system with these main tables:
       - time_entries: Contains employee work shift data, hours, wages, and tips
       - item_selection_details: Contains food/beverage orders, prices, and dining details
-      - food_costs: Contains inventory costs, product details, and sales information
+      - food_costs: Contains inventory costs, product details, pricing, and inventory information
+      - menu_mappings: Contains standardized mappings between adhoc menu item names and consistent product names
+      
+      For menu item analytics, the standard approach is to join item_selection_details with menu_mappings:
+      
+      SELECT mp.product_name, SUM(isd.total_price) AS total_sales
+      FROM item_selection_details isd 
+      JOIN menu_mappings mp ON isd.menu_item = mp.item_name 
+      GROUP BY mp.product_name 
+      ORDER BY total_sales DESC
+      
+      This allows for standardized product analysis rather than working with inconsistent menu_item values.
+      
+      For time series analysis across tables (especially time_entries, food_costs, and item_selection_details):
+      - First group by time periods (day, week, month) within each table
+      - Then join the aggregated results on the common time periods
+      - This approach reveals clearer trends and patterns than analyzing raw joined data
       
       Provide a comprehensive analysis that includes:
       1. A concise summary of what the data shows
