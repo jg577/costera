@@ -189,7 +189,160 @@ export const generateQuery = async (input: string) => {
        - Different parts of the analysis require different groupings or time periods
        - The data would be clearer if presented in separate result sets
        - Complex JOINs might make the query inefficient or the results harder to interpret
+
+    Example 1
+
+    user query: are we getting better or worse?
     
+    generated sql:
+    "
+    SELECT 
+    DATE_TRUNC('month', order_date) AS month,
+    SUM(net_price) AS total_sales,
+    CASE 
+        WHEN DATE_TRUNC('month', order_date) = DATE_TRUNC('month', CURRENT_DATE) THEN 'Current Month'
+        WHEN DATE_TRUNC('month', order_date) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') THEN 'Last Month'
+        WHEN DATE_TRUNC('month', order_date) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 months') THEN '2 Months Ago'
+        WHEN DATE_TRUNC('month', order_date) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '3 months') THEN '3 Months Ago'
+        WHEN DATE_TRUNC('month', order_date) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 year') THEN 'Last Year Same Month'
+    END AS period_label
+    FROM item_selection_details
+    WHERE order_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 year')
+        AND order_date <= CURRENT_DATE
+        
+    GROUP BY DATE_TRUNC('month', order_date)
+    HAVING DATE_TRUNC('month', order_date) IN (
+        DATE_TRUNC('month', CURRENT_DATE),                    -- Current month
+        DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month'), -- Last month
+        DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 months'),-- 2 months ago
+        DATE_TRUNC('month', CURRENT_DATE - INTERVAL '3 months'),-- 3 months ago
+        DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 year')   -- Last year same month
+    )
+    ORDER BY month DESC;
+    "
+
+    Example 2:
+
+    user query: what product_name selling at a higher rate than ever before
+
+    generated sql:
+    "
+    WITH monthly_sales AS (
+        -- Aggregate sales by product_name and month
+        SELECT 
+            mm.product_name,
+            DATE_TRUNC('month', isd.order_date) AS sales_month,
+            SUM(isd.qty) AS total_quantity,
+            COUNT(DISTINCT isd.order_date::DATE) AS days_in_month,
+            SUM(isd.qty)::FLOAT / COUNT(DISTINCT isd.order_date::DATE) AS avg_quantity_per_day
+        FROM 
+            item_selection_details isd
+        LEFT JOIN 
+            menu_mappings mm
+            ON isd.menu_item = mm.menu_item
+            AND coalesce(isd.menu_group, 'Null') = coalesce(mm.menu_group, 'Null')
+        GROUP BY 
+            mm.product_name,
+            DATE_TRUNC('month', isd.order_date)
+        HAVING 
+            SUM(isd.qty) > 0  -- Ensure some sales
+    ),
+    max_historical AS (
+        -- Max historical rate (excluding latest month)
+        SELECT 
+            product_name,
+            MAX(avg_quantity_per_day) AS max_historical_rate,
+            COUNT(DISTINCT sales_month) AS month_count
+        FROM 
+            monthly_sales
+        WHERE 
+            sales_month < (SELECT MAX(DATE_TRUNC('month', order_date)) FROM item_selection_details)
+        GROUP BY 
+            product_name
+        HAVING 
+            COUNT(DISTINCT sales_month) >= 2  -- At least 2 months of history
+    ),
+    current_rate AS (
+        -- Current rate (latest month)
+        SELECT 
+            product_name,
+            avg_quantity_per_day AS current_rate,
+            total_quantity AS current_quantity,
+            sales_month AS current_month
+        FROM 
+            monthly_sales
+        WHERE 
+            sales_month = (SELECT MAX(DATE_TRUNC('month', order_date)) FROM item_selection_details)
+    )
+    SELECT 
+        cr.product_name,
+        cr.current_month,
+        cr.current_quantity,
+        ROUND(cr.current_rate::NUMERIC, 2) AS current_rate,
+        ROUND(mh.max_historical_rate::NUMERIC, 2) AS max_historical_rate,
+        ROUND((cr.current_rate - mh.max_historical_rate)::NUMERIC, 2) AS rate_increase
+    FROM 
+        current_rate cr
+    JOIN 
+        max_historical mh
+        ON cr.product_name = mh.product_name
+    WHERE 
+        cr.current_rate > mh.max_historical_rate
+    ORDER BY 
+        rate_increase DESC;"
+
+    Example 3:
+
+    user query: what product category sells more than others?
+
+    generated sql:
+    "
+    "WITH monthly_special_sales AS (
+    SELECT 
+        mm.product_name,
+        DATE_TRUNC('month', isd.order_date) AS sales_month,
+        SUM(isd.qty) AS total_quantity,
+        SUM(isd.net_price) AS total_sales
+    FROM 
+        item_selection_details isd
+    JOIN 
+        menu_mappings mm
+        ON isd.menu_item = mm.menu_item
+        AND COALESCE(isd.menu_group, 'Null') = COALESCE(mm.menu_group, 'Null')
+    WHERE 
+        mm.category in ('Special - Bowl',  'Special - Sandwich', 'Special - Plate')
+    GROUP BY 
+        mm.product_name,
+        DATE_TRUNC('month', isd.order_date)
+    HAVING 
+        SUM(isd.net_price) > 0
+    ),
+    ranked_sales AS (
+        SELECT 
+            sales_month,
+            product_name,
+            total_quantity,
+            total_sales,
+            RANK() OVER (PARTITION BY sales_month ORDER BY total_sales DESC) AS sales_rank
+        FROM 
+            monthly_special_sales
+    )
+    SELECT 
+        sales_month,
+        product_name,
+        total_quantity,
+        total_sales,
+        sales_rank
+    FROM 
+        ranked_sales
+    WHERE 
+        sales_rank <= 10
+    ORDER BY 
+        sales_month ASC,
+        total_sales DESC;"
+
+
+
     When providing multiple queries, each query must be a valid SELECT statement and clearly labeled with a comment indicating what it's calculating (e.g., "-- Query 1: Daily sales totals").
     
     For each query or set of queries, ensure that the returned data will be suitable for visualization (charts, graphs, tables).
