@@ -11,6 +11,11 @@ import { openai } from "@ai-sdk/openai";
 import { sql } from "@vercel/postgres";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { luna } from "@/lib/luna-provider";
+import { openai } from "@ai-sdk/openai";
+
+
+// Create a Luna backend instance
 
 export async function generateQuery(
   query: string,
@@ -336,6 +341,7 @@ export async function generateQuery(
         ),
       }),
     });
+    console.log("Generated SQL query result:", JSON.stringify(result.response, null, 2));
     return result.object.queries;
   } catch (e) {
     console.error(e);
@@ -418,7 +424,7 @@ export const explainQuery = async (
       .join("\n\n");
 
     const result = await generateObject({
-      model: openai("gpt-4o"),
+      model: luna("luna/model-1"),
       schema: z.object({
         explanations: z.array(
           z.object({
@@ -608,7 +614,7 @@ export const generateChartConfig = async (
       .join("\n\n");
 
     const result = await generateObject({
-      model: openai("gpt-4o"),
+      model: luna('luna/chat-model'),
       schema: configSchema,
       system: `You are a data visualization expert.Your job is to help users create charts that best represent their data.
       First, you need to suggest the most suitable chart type(s) for visualizing the data returned by the SQL queries.
@@ -805,7 +811,7 @@ export const generateDataInsights = async (
     });
 
     const result = await generateObject({
-      model: openai("gpt-4o"),
+      model: luna('luna/model-1'),
       schema: insightsSchema,
       system: `You are a data analyst and business intelligence expert for a restaurant business.Your job is to analyze SQL query results and provide meaningful insights, patterns, and recommendations based on the data.
       
