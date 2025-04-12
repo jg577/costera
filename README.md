@@ -6,56 +6,6 @@
 
 Luna is your intelligent office assistant that transforms how your entire team works with business data. Beyond just database queries, Luna helps with strategic insights, team collaboration, and informed decision-making - all through natural conversation. No more technical barriers between your business questions and actionable answers.
 
-## What Can Luna Do For Your Office?
-
-- **Understand Business Questions**: Ask anything like "How did our Chicago location perform last quarter?" or "What product categories have the highest profit margin?" in plain language.
-
-- **Generate Presentation-Ready Visuals**: Luna automatically creates beautiful charts, tables, and data summaries that can be shared directly with stakeholders or incorporated into reports.
-
-- **Deliver Strategic Insights**: Luna doesn't just fetch data - it analyzes trends, identifies opportunities, and highlights potential issues that might impact your business.
-
-- **Enable Team Collaboration**: Everyone in your office can access the same data insights without technical knowledge, democratizing information across departments.
-
-- **Build Institutional Knowledge**: Luna maintains historical queries and insights, creating a searchable knowledge base of business intelligence specific to your organization.
-
-- **Streamline Decision Making**: Make data-informed decisions faster by reducing the time between questions and actionable insights.
-
-## Perfect For Your Entire Office
-
-- **Executives** who need quick answers to strategic questions
-- **Marketing Teams** analyzing campaign performance and customer behavior
-- **Operations Managers** monitoring efficiency and identifying bottlenecks
-- **Sales Teams** tracking performance and identifying opportunities
-- **Finance Departments** generating reports and analyzing cost structures
-- **HR Teams** understanding staffing patterns and productivity metrics
-- **Anyone in your organization** who needs data without technical barriers
-
-## Daily Office Tasks Luna Makes Easier
-
-- **Morning Briefings**: "What are today's key metrics to watch?"
-- **Team Meetings**: "Show me how each department performed this month"
-- **Quarterly Reviews**: "Compare our performance to previous quarters"
-- **Decision Support**: "What would happen to our margins if we raised prices by 5%?"
-- **Trend Spotting**: "Are there any unusual patterns in our customer behavior lately?"
-- **Quick Fact Checks**: "What was our highest selling product last week?"
-
-## How Luna Works Its Magic
-
-1. **You ask** a business question in plain English
-2. **Luna translates** your question into optimized database queries
-3. **Results appear** in easy-to-read tables and professionally designed charts
-4. **Strategic insights** are generated to highlight important patterns and opportunities
-5. **Your team collaborates** by asking follow-up questions and exploring the data together
-
-## Key Office Assistant Features
-
-- **Intelligent Conversation**: Luna understands context and business terminology across departments.
-- **Beautiful Visualizations**: Automatically generates presentation-ready charts with distinct colors for clear data representation.
-- **Multi-Data Integration**: For complex business questions, Luna can integrate data from multiple sources.
-- **Time-Series Analysis**: Historical data is always properly organized and analyzed for trends over time.
-- **Business-Ready Formatting**: Currencies, percentages, metrics, and dates are displayed in professional formats.
-- **Transparency**: Always see how Luna arrived at its conclusions with full visibility into the underlying queries.
-- **Infinite Conversation History**: Keep a record of all queries and insights, building a knowledge base over time.
 
 ## Getting Started
 
