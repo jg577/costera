@@ -341,11 +341,18 @@ export async function generateQuery(
         ),
       }),
     });
-    console.log("Generated SQL query result:", JSON.stringify(result.response, null, 2));
-    return result.object.queries;
-  } catch (e) {
-    console.error(e);
-    throw new Error("Failed to generate query");
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const queries = data.queries; // Directly access the queries field
+
+    return queries;
+  } catch (error) {
+    console.error("Error fetching queries:", error);
+    throw error;
   }
 }
 
@@ -424,7 +431,8 @@ export const explainQuery = async (
       .join("\n\n");
 
     const result = await generateObject({
-      model: luna("luna/model-1"),
+      // model: luna("luna/model-1"),
+      model: openai('gpt-4o'),
       schema: z.object({
         explanations: z.array(
           z.object({
@@ -614,7 +622,8 @@ export const generateChartConfig = async (
       .join("\n\n");
 
     const result = await generateObject({
-      model: luna('luna/chat-model'),
+      // model: luna('luna/chat-model'),
+      model: openai('gpt-4o'),
       schema: configSchema,
       system: `You are a data visualization expert.Your job is to help users create charts that best represent their data.
       First, you need to suggest the most suitable chart type(s) for visualizing the data returned by the SQL queries.
@@ -811,7 +820,8 @@ export const generateDataInsights = async (
     });
 
     const result = await generateObject({
-      model: luna('luna/model-1'),
+      // model: luna('luna/model-1'),
+      model: openai('gpt-4o'),
       schema: insightsSchema,
       system: `You are a data analyst and business intelligence expert for a restaurant business.Your job is to analyze SQL query results and provide meaningful insights, patterns, and recommendations based on the data.
       
