@@ -15,110 +15,116 @@ export const generateQuery = async (input: string) => {
 
       Table: time_entries
       # column_name            data_type                           is_nullable
-      1  id                    text                                NO (PRIMARY KEY)
-      2  user_id               text                                NO
-      3  project_id            text                                NO
-      4  task_id               text                                YES
-      5  start_time            timestamp without time zone         NO
-      6  end_time              timestamp without time zone         NO
-      7  duration              integer                             NO
-      8  description           text                                YES
-      9  billable              boolean                             YES
-      10 created_at            timestamp without time zone         NO
-      11 updated_at            timestamp without time zone         NO
-      12 location              text                                YES
-      13 location_code         text                                YES
-      14 employee_id           text                                YES
-      15 employee_external_id  text                                YES
-      16 employee_name         text                                YES
-      17 job_id                text                                YES
-      18 job_code              text                                YES
-      19 auto_clockout         boolean                             YES
-      20 total_hours           numeric(10,2)                       YES
-      21 unpaid_break_time     numeric(10,2)                       YES
-      22 paid_break_time       numeric(10,2)                       YES
-      23 payable_hours         numeric(10,2)                       YES
-      24 cash_tips_declared    numeric(10,2)                       YES
-      25 non_cash_tips         numeric(10,2)                       YES
-      26 total_gratuity        numeric(10,2)                       YES
-      27 total_tips            numeric(10,2)                       YES
-      28 tips_withheld         numeric(10,2)                       YES
-      29 wage                  numeric(10,2)                       YES
-      30 regular_hours         numeric(10,2)                       YES
-      31 overtime_hours        numeric(10,2)                       YES
-      32 regular_pay           numeric(10,2)                       YES
-      33 overtime_pay          numeric(10,2)                       YES
-      34 total_pay             numeric(10,2)                       YES
+      1	location	text			NO
+      2	location_code	text			YES
+      3	id	text			YES
+      4	guid	text			NO
+      5	employee_id	text			NO
+      6	employee_guid	text			NO
+      7	employee_external_id	text			NO
+      8	employee	text			NO
+      9	job_id	text			NO
+      10	job_guid	text			NO
+      11	job_code	text			YES
+      12	job_title	text			NO
+      13	in_date	timestamp without time zone			NO
+      14	out_date	timestamp without time zone			YES
+      15	auto_clockout	boolean			NO
+      16	total_hours	numeric			NO
+      17	unpaid_break_time	numeric			NO
+      18	paid_break_time	numeric			NO
+      19	payable_hours	numeric			NO
+      20	cash_tips_declared	numeric			YES
+      21	non_cash_tips	numeric			NO
+      22	total_gratuity	numeric			NO
+      23	total_tips	numeric			NO
+      24	tips_withheld	numeric			NO
+      25	wage	numeric			YES
+      26	regular_hours	numeric			NO
+      27	overtime_hours	numeric			NO
+      28	regular_pay	numeric			YES
+      29	overtime_pay	numeric			NO
+      30	total_pay	numeric			YES
+      31	created_at	timestamp without time zone		CURRENT_TIMESTAMP	YES
+      32	updated_at	timestamp without time zone			YES
+
 
       Table: item_selection_details
       # column_name            data_type                           is_nullable
-      1  id                    text                                NO (PRIMARY KEY)
-      2  selection_id          text                                NO
-      3  item_id               text                                NO
-      4  quantity              numeric(10,2)                       NO
-      5  unit_price            numeric(10,2)                       NO
-      6  total_price           numeric(10,2)                       NO
-      7  notes                 text                                YES
-      8  created_at            timestamp without time zone         NO
-      9  updated_at            timestamp without time zone         NO
-      10 location              text                                YES
-      11 order_number          text                                YES
-      12 sent_date             timestamp without time zone         YES
-      13 check_id              text                                YES
-      14 server                text                                YES
-      15 table_name            text                                YES
-      16 dining_area           text                                YES
-      17 service               text                                YES
-      18 dining_option         text                                YES
-      19 master_id             text                                YES
-      20 sku                   text                                YES
-      21 plu                   text                                YES
-      22 menu_item             text                                YES
-      23 menu_subgroups        text                                YES
-      24 menu_group            text                                YES
-      25 menu                  text                                YES
-      26 sales_category        text                                YES
-      27 discount              numeric(10,2)                       YES
-      28 tax                   numeric(10,2)                       YES
-      29 is_void               boolean                             YES
-      30 is_deferred           boolean                             YES
-      31 is_tax_exempt         boolean                             YES
-      32 tax_inclusion_option  text                                YES
-      33 dining_option_tax     text                                YES
-      34 tab_name              text                                YES
+      1	location	text			YES
+      2	order_id	text			YES
+      3	order_num	text			YES
+      4	sent_date	timestamp without time zone			YES
+      5	order_date	timestamp without time zone			YES
+      6	check_id	text			YES
+      7	server_name	text			YES
+      8	table_name	text			YES
+      9	dining_area	text			YES
+      10	service	text			YES
+      11	dining_option	text			YES
+      12	item_selection_id	text			YES
+      13	item_id	text			YES
+      14	master_id	text			YES
+      15	sku	text			YES
+      16	plu	text			YES
+      17	menu_item	text			YES
+      18	menu_subgroups	text			YES
+      19	menu_group	text			YES
+      20	menu	text			YES
+      21	sales_category	text			YES
+      22	gross_price	numeric			YES
+      23	discount	numeric			YES
+      24	net_price	numeric			YES
+      25	qty	integer			YES
+      26	tax	numeric			YES
+      27	void	text			YES
+      28	deferred	text			YES
+      29	tax_exempt	text			YES
+      30	tax_inclusion_option	text			YES
+      31	dining_option_tax	text			YES
+      32	tab_name	text			YES
+      33	created_at	timestamp without time zone		CURRENT_TIMESTAMP	YES
+      34	updated_at	timestamp without time zone			YES
 
-      Table: food_costs
+      Table: costs
       # column_name            data_type                           is_nullable
-      1  id                    text                                NO (PRIMARY KEY)
-      2  month                 timestamp without time zone         YES
-      3  dist_sku              text                                YES
-      4  mfr_sku               text                                YES
-      5  manufacturer          text                                YES
-      6  item_name             text                                NO
-      7  pack                  text                                YES
-      8  size                  text                                YES
-      9  brand                 text                                YES
-      10 unit_type             text                                YES
-      11 quantity              numeric(10,2)                       YES
-      12 weight                numeric(10,2)                       YES
-      13 sales                 numeric(10,2)                       YES
-      14 created_at            timestamp without time zone         NO
-      15 updated_at            timestamp without time zone         NO
+      1	date	date			YES
+      2	dist_sku	text			YES
+      3	mfr_sku	text			YES
+      4	manufacturer	text			YES
+      5	item_name	text			YES
+      6	pack	integer			YES
+      7	size	text			YES
+      8	brand	text			YES
+      9	unit_type	text			YES
+      10	quantity	integer			YES
+      11	weight	numeric			YES
+      12	sales	numeric			YES
+      13	created_at	timestamp without time zone			YES
+      14	updated_at	timestamp without time zone			YES
 
       Table: menu_mappings
       # column_name            data_type                           is_nullable
-      1  id                    text                                NO (PRIMARY KEY)
-      2  index                 text                                YES
-      3  item_name             text                                NO
-      4  menu_group            text                                YES
-      5  business_line         text                                YES
-      6  category              text                                YES
-      7  ounces                numeric(10,2)                       YES
-      8  product_name          text                                YES
-      9  product_type          text                                YES
-      10 package_amount        text                                YES
-      11 created_at            timestamp without time zone         NO
-      12 updated_at            timestamp without time zone         NO
+      1	menu_item	text			YES
+      2	menu_group	text			YES
+      3	business_line	text			YES
+      4	category	text			YES
+      5	ounces	text			YES
+      6	product_name	text			YES
+      7	product_type	text			YES
+      8	package_amount	text			YES
+      9	created_at	timestamp without time zone			YES
+      10	updated_at	timestamp without time zone			YES
+
+      Table: cost_groups
+      #	column_name	data_type	character_maximum_length	column_default	is_nullable
+      1	item_name	text			YES
+      2	item	text			YES
+      3	item_type	text			YES
+      4	item_group	text			YES
+      5	created_at	timestamp without time zone			YES
+      6	updated_at	timestamp without time zone			YES
+
 
     Only retrieval queries are allowed.
 
@@ -577,6 +583,13 @@ export const explainQuery = async (input: string, queries: { queryName: string; 
     When explaining JOIN operations, be clear about why the joins were necessary based on the user's query - explain how the tables are related in the context of the query and what business question required pulling data from multiple tables. Make sure to explain join conditions in a way that's accessible to non-technical users.
     
     For multiple queries, explain each query separately and also explain how the queries work together to provide the overall insights the user requested. If queries retrieve data from different tables or combine data from multiple tables, explain why this approach was chosen and how it helps answer the user's question.
+
+    For multiple tables (like time_entries, item_selection_details, and costs), emphasize how they relate to each other. For example:
+    - How labor patterns affect sales performance
+    - How inventory costs correlate with menu item popularity
+    - How staffing levels impact customer experience metrics
+    
+    In your crossQueryInsights section, focus specifically on insights that require data from multiple queries to discover.
     `,
       prompt: `Explain the SQL queries you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down each query into steps. Be concise.
 
@@ -808,7 +821,7 @@ export const generateDataInsights = async (
       4. Identifying how employee data, sales data, and cost data interact with each other
       5. Finding holistic business patterns that would not be visible in any single query alone
       
-      For multiple tables (like time_entries, item_selection_details, and food_costs), emphasize how they relate to each other. For example:
+      For multiple tables (like time_entries, item_selection_details, and costs), emphasize how they relate to each other. For example:
       - How labor patterns affect sales performance
       - How inventory costs correlate with menu item popularity
       - How staffing levels impact customer experience metrics
