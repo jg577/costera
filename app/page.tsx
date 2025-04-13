@@ -26,6 +26,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+async function initializeSession() {
+  await sql`SET search_path TO 12_bones`;
+  // Subsequent queries will use the modified search_path
+}
+
+
 // Define a type for a complete query session
 interface QuerySession {
   id: string;

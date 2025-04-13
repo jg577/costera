@@ -3,15 +3,11 @@
 import { Config, configSchema, explanationsSchema, Result } from "@/lib/types";
 import { openai } from "@ai-sdk/openai";
 import { sql } from "@vercel/postgres";
-import { generateObject } from "ai";
+import { generateObject, generateText, tool } from "ai";
+import { X } from "lucide-react";
 import { z } from "zod";
 
-export const generateQuery = async (input: string) => {
-  "use server";
-  try {
-    const result = await generateObject({
-      model: openai("gpt-4o"),
-      system: `You are a SQL (postgres) and data visualization expert. Your job is to help the user write SQL queries to retrieve the data they need. The database contains the following tables and schemas:
+export const context_txt: string = `You are a SQL (postgres) and data visualization expert. Your job is to help the user write SQL queries to retrieve the data they need. The database contains the following tables and schemas:
 
       Table: time_entries
       # column_name            data_type                           is_nullable
@@ -348,7 +344,43 @@ export const generateQuery = async (input: string) => {
     For each query or set of queries, ensure that the returned data will be suitable for visualization (charts, graphs, tables).
     
     You are encouraged to retrieve information independently from all tables or a mix of tables when it makes sense for the analysis. Don't limit yourself to querying just one table if the user's request could benefit from cross-table analysis.
-    `,
+`
+
+async function initializeSession() {
+  await sql`SET search_path TO 12_bones`;
+  // Subsequent queries will use the modified search_path
+}
+
+const queryPlanner = tool({
+  description: 'This tool takes in a user query and the table schema and presents different tables, columns and subqueries that you might need to execute',
+  parameters: z.object({ user_query: z.string(), schema: z.string(), context: z.string() }),
+  execute: async ({ user_query, schema, context }) => {
+    try {
+      const result = await generateObject({
+        model: openai("gpt-4o"),
+        system: context,
+        prompt: `Given the user query: "${user_query}" and the schema: "${schema}", generate a list of subqueries and an overall result.`,
+        schema: z.object({
+          subqueries: z.array(z.string()).describe("List of subqueries"),
+          overallResult: z.string().describe("Overall result in text")
+        })
+      });
+      return result.object;
+    } catch (e) {
+      console.error(e);
+      throw new Error("Failed to generate subqueries and overall result");
+    }
+  }
+})
+
+
+
+export const generateQuery = async (input: string) => {
+  "use server";
+  try {
+    const result = await generateObject({
+      model: openai("gpt-4o"),
+      system: context_txt,
       prompt: `Generate the SQL query or queries necessary to retrieve the data the user wants: ${input}`,
       schema: z.object({
         queries: z.array(z.object({
@@ -362,6 +394,23 @@ export const generateQuery = async (input: string) => {
   } catch (e) {
     console.error(e);
     throw new Error("Failed to generate query");
+  }
+};
+
+export const generateQueryTool = async (input: string) => {
+  "use server";
+  try {
+    const result = await generateText({
+      model: openai('got-4o'),
+      system: context_txt,
+      tools: {
+
+      }
+
+    })
+  } catch (e) {
+    console.error(e);
+    throw new Error("Failed to generate text");
   }
 };
 
@@ -571,7 +620,7 @@ export const explainQuery = async (input: string, queries: { queryName: string; 
     For time series analysis across tables (especially time_entries, food_costs, and item_selection_details):
     - First group by time periods (day, week, month) within each table
     - Then join the aggregated results on the common time periods
-    - This approach is more efficient and produces cleaner results than joining raw tables
+    - This approach is more efficient and produces cleaner visualizations than joining raw tables
     - Use functions like DATE_TRUNC('month', timestamp_column) for consistent grouping
 
     When explaining JOIN operations, be clear about why the joins were necessary based on the user's query - explain how the tables are related in the context of the query and what business question required pulling data from multiple tables. Make sure to explain join conditions in a way that's accessible to non-technical users.
