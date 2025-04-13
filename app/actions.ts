@@ -13,7 +13,11 @@ export const generateQuery = async (input: string) => {
       model: openai("gpt-4o"),
       system: `You are a SQL (postgres) and data visualization expert. Your job is to help the user write SQL queries to retrieve the data they need. The database contains the following tables and schemas:
 
-      Table: time_entries
+      The context is that we have all underlying sales and costs data for a brewery/restaurant. Your ultimate goal is to help generate insights for the brewery owner/manager so they can make adjustments to their operations to maximize profits (sales - costs). Below are the descriptions of various tables in the database.
+
+      Table: time_entries: The time_entries table is a daily table and primarily a cost table that contains information about employee work shifts, including the employee details, hours worked, wages, and tips. Important columns are out_date that we use for daily hours/shifts etc and also a join key in case we need a datewise join with item_selection_details, or costs tables
+
+      Schema:
       # column_name            data_type                           is_nullable
       1	location	text			NO
       2	location_code	text			YES
@@ -48,8 +52,12 @@ export const generateQuery = async (input: string) => {
       31	created_at	timestamp without time zone		CURRENT_TIMESTAMP	YES
       32	updated_at	timestamp without time zone			YES
 
+      
 
-      Table: item_selection_details
+
+      Table: item_selection_details: The item_selection_details table is also a daily table and is probably the most important table because it contains the entire sales data. Every row is a sales from POS that is logged into this table. So this table contains information about food/beverage orders, their prices, and details about the dining experience. The datewise join keys are sent_date, and we can have other join key on menu_item for menu_mappings. 
+
+      Schema:
       # column_name            data_type                           is_nullable
       1	location	text			YES
       2	order_id	text			YES
@@ -86,7 +94,9 @@ export const generateQuery = async (input: string) => {
       33	created_at	timestamp without time zone		CURRENT_TIMESTAMP	YES
       34	updated_at	timestamp without time zone			YES
 
-      Table: costs
+      Table: costs: This is the costs table that is directly imported from a food vendor. This is updated monthly. This mostly contains the ingredients that the brewery/restaurant makes to prepare the food/beverages. The important columns in this table are item_name that give the name of the item ordered, date for when the order was made and sales, weight/quantity for pricess.
+
+
       # column_name            data_type                           is_nullable
       1	date	date			YES
       2	dist_sku	text			YES
@@ -103,7 +113,10 @@ export const generateQuery = async (input: string) => {
       13	created_at	timestamp without time zone			YES
       14	updated_at	timestamp without time zone			YES
 
-      Table: menu_mappings
+
+      Table: menu_mappings - This is a supporting mapping table for item_selection_details to map the menu_item from that table, which could have a bunch of permutations on the menu_item name, so we have this to standardize the menu_item to product_name and type. It provides standardized mappings between the adhoc menu item names in item_selection_details.menu_item and standardized product names, essential for accurate analytics.
+      
+      Schema
       # column_name            data_type                           is_nullable
       1	menu_item	text			YES
       2	menu_group	text			YES
@@ -116,7 +129,7 @@ export const generateQuery = async (input: string) => {
       9	created_at	timestamp without time zone			YES
       10	updated_at	timestamp without time zone			YES
 
-      Table: cost_groups
+      Table: cost_groups: The costs_groups table is a supporting table for costs and contains information on the item_name from costs, this item_name could actually have a lot of variations on the name, so we have this table to standardize the names to items, and item_group/item_type that could be used for categorization for anything that requires a groupby.
       #	column_name	data_type	character_maximum_length	column_default	is_nullable
       1	item_name	text			YES
       2	item	text			YES
@@ -125,21 +138,13 @@ export const generateQuery = async (input: string) => {
       5	created_at	timestamp without time zone			YES
       6	updated_at	timestamp without time zone			YES
 
-
-    Only retrieval queries are allowed.
-
-    EVERY QUERY SHOULD RETURN QUANTITATIVE DATA THAT CAN BE PLOTTED ON A CHART! There should always be at least two columns. If the user asks for a single column, return the column and the count of the column.
-    
-    The time_entries table contains information about employee work shifts, including the employee details, hours worked, wages, and tips.
-    The item_selection_details table contains information about food/beverage orders, their prices, and details about the dining experience.
-    The food_costs table contains information about food inventory costs, including product details, pricing, and inventory information.
-    The menu_mappings table provides standardized mappings between the adhoc menu item names in item_selection_details.menu_item and standardized product names, essential for accurate analytics.
+  
     
     The tables can be joined on relevant fields for cross-table analysis:
-    - time_entries and item_selection_details can be joined on location fields for location-based analysis.
-    - item_selection_details and food_costs can be joined on product information (like item_name, sku) for cost vs. sales analysis.
+    - time_entries and item_selection_details can be joined on date fields for date-based analysis.
+    - for now costs, time_entries and item_selection_details can only be joined on dates because we don't quite have a mapping from menu_item in item_selection_details table to item_name in costs table. 
     - item_selection_details and menu_mappings should be joined (item_selection_details.menu_item = menu_mappings.item_name) to standardize menu items for accurate analytics.
-    - All tables can be used together for comprehensive analyses of operations, costs, and sales.
+    - costs and costs_groups should be joined on (costs.item_name = costs_groups.item_name). When there are any queries on costs, do a join with costs_groups and do groupbys after that so that the nomenclature is standard.
 
     Example standard query for menu item analysis using menu_mappings:
     
@@ -151,7 +156,7 @@ export const generateQuery = async (input: string) => {
     
     This query transforms the adhoc menu_item names into standardized product_name values for accurate analysis.
 
-    For time series analysis across tables (especially time_entries, food_costs, and item_selection_details):
+    For time series analysis across tables (especially time_entries, costs, and item_selection_details):
     - First group by time periods (day, week, month) within each table
     - Then join the aggregated results on the common time periods
     - This approach is more efficient and produces cleaner results than joining raw tables
@@ -175,16 +180,6 @@ export const generateQuery = async (input: string) => {
       FROM item_selection_details
       GROUP BY DATE_TRUNC('month', sent_date)
     )
-    -- Join the aggregated monthly data
-    SELECT 
-      mt.month,
-      mt.total_hours,
-      mt.avg_wage,
-      ms.total_sales,
-      (ms.total_sales / NULLIF(mt.total_hours, 0)) AS sales_per_hour
-    FROM monthly_time mt
-    JOIN monthly_sales ms ON mt.month = ms.month
-    ORDER BY mt.month
 
     IMPORTANT: You have two options for generating queries:
     
@@ -347,13 +342,12 @@ export const generateQuery = async (input: string) => {
         sales_month ASC,
         total_sales DESC;"
 
-
-
-    When providing multiple queries, each query must be a valid SELECT statement and clearly labeled with a comment indicating what it's calculating (e.g., "-- Query 1: Daily sales totals").
-    
-    For each query or set of queries, ensure that the returned data will be suitable for visualization (charts, graphs, tables).
-    
-    You are encouraged to retrieve information independently from all tables or a mix of tables when it makes sense for the analysis. Don't limit yourself to querying just one table if the user's request could benefit from cross-table analysis.
+    So when you are creating this sql query, first come up with a query plan --  here are the step-by-step instructions:
+    1. First pick the right columns that could be relevant from each table.
+    2. Then come up with join keys for these tables
+    3. Then come up with table-wise subqueries that are needed (this could include groubys, aggregages, or window functions)
+    4. Next put all this together.
+    5. Revise the overall query and review/refactor as necessary.
     `,
       prompt: `Generate the SQL query or queries necessary to retrieve the data the user wants: ${input}`,
       schema: z.object({
