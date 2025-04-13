@@ -46,7 +46,7 @@ Give everyone in your office access to Luna by deploying it with one click:
 Luna is built on cutting-edge technology:
 
 - **Next.js** for a responsive, modern interface
-- **Advanced AI** powered by OpenAI for natural language understanding
+- **Advanced AI** powered by OpenAI for NLU
 - **Interactive Visualizations** with Recharts
 - **SQL Database Integration** with Vercel Postgres
 - **Beautiful UI Components** from ShadcnUI and Tailwind CSS
