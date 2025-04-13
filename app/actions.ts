@@ -380,9 +380,9 @@ export const runGenerateSQLQuery = async (queries: { queryName: string; queryDes
     const sqlQuery = query.sql;
     const sqlLower = sqlQuery.trim().toLowerCase();
 
-    // Check if it starts with SELECT
-    if (!sqlLower.startsWith("select")) {
-      throw new Error("Only SELECT queries are allowed");
+    // Check if it starts with SELECT or WITH
+    if (!sqlLower.startsWith("select") && !sqlLower.startsWith("with")) {
+      throw new Error("Only SELECT and WITH queries are allowed");
     }
 
     // Check for disallowed SQL commands using word boundaries or spaces
