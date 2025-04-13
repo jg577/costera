@@ -5,9 +5,9 @@ import { ThemeProvider } from "next-themes";
 
 export const metadata = {
   metadataBase: new URL("https://luna"),
-  title: "12 Bones Brewing - powered by Luna",
+  title: "12 Bones Smokehouse and Brewing - powered by Luna",
   description:
-    "Brewery analytics and operational insights powered by Luna's natural language processing.",
+    "Restaurant analytics and operational insights powered by Luna's natural language processing.",
 };
 
 export default function RootLayout({

@@ -129,7 +129,7 @@ export const generateQuery = async (input: string) => {
       9	created_at	timestamp without time zone			YES
       10	updated_at	timestamp without time zone			YES
 
-      Table: cost_groups: The costs_groups table is a supporting table for costs and contains information on the item_name from costs, this item_name could actually have a lot of variations on the name, so we have this table to standardize the names to items, and item_group/item_type that could be used for categorization for anything that requires a groupby.
+      Table: costs_groups: The costs_groups table is a supporting table for costs and contains information on the item_name from costs, this item_name could actually have a lot of variations on the name, so we have this table to standardize the names to items, and item_group/item_type that could be used for categorization for anything that requires a groupby.
       #	column_name	data_type	character_maximum_length	column_default	is_nullable
       1	item_name	text			YES
       2	item	text			YES

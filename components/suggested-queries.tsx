@@ -13,32 +13,32 @@ export const SuggestedQueries = ({
       mobile: "Hours by employee",
     },
     {
-      desktop: "Compare sales of different beer types last quarter",
-      mobile: "Beer sales comparison",
+      desktop: "Compare sales of different menu items last quarter",
+      mobile: "Menu sales comparison",
     },
     {
-      desktop: "Which brewing staff have the highest productivity?",
+      desktop: "Which staff have the highest productivity?",
       mobile: "Staff productivity",
     },
     {
-      desktop: "Show the distribution of taproom visits by day of week",
+      desktop: "Show the distribution of restaurant visits by day of week",
       mobile: "Weekly visitors",
     },
     {
-      desktop: "Compare revenue vs. production costs for each beer",
-      mobile: "Beer profitability",
+      desktop: "Compare revenue vs. food costs for each menu item",
+      mobile: "Menu item profitability",
     },
     {
-      desktop: "What were our grain and hop costs last month?",
+      desktop: "What were our ingredient costs last month?",
       mobile: "Ingredient costs",
     },
     {
-      desktop: "Show me sales trends for seasonal vs. core beers",
-      mobile: "Seasonal vs. core",
+      desktop: "Show me sales trends for seasonal vs. regular menu items",
+      mobile: "Seasonal vs. regular",
     },
     {
-      desktop: "Compare production efficiency between different batches",
-      mobile: "Batch efficiency",
+      desktop: "Compare efficiency between different shifts",
+      mobile: "Shift efficiency",
     },
   ];
 
@@ -54,7 +54,7 @@ export const SuggestedQueries = ({
       <div className="flex items-center mb-6">
         <LightbulbIcon className="h-5 w-5 mr-2 text-primary" />
         <h2 className="text-lg font-medium text-foreground">
-          12 Bones Brewing Analytics
+          12 Bones Smokehouse and Brewing Analytics
         </h2>
       </div>
 
@@ -87,9 +87,9 @@ export const SuggestedQueries = ({
       <div className="container-box p-4 mb-4 border-l-4 border-primary">
         <h3 className="text-md font-medium mb-2">Tips for best results</h3>
         <ul className="list-disc pl-5 text-sm space-y-2">
-          <li>Ask specific questions about your brewery operations or sales</li>
+          <li>Ask specific questions about your restaurant operations or sales</li>
           <li>Include timeframes like &ldquo;this quarter&rdquo; or &ldquo;last month&rdquo;</li>
-          <li>Specify beer types, production batches, or distribution channels</li>
+          <li>Specify menu items, daily specials, or customer preferences</li>
           <li>Try asking for comparisons between different metrics or time periods</li>
         </ul>
       </div>
