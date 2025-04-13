@@ -357,6 +357,9 @@ export const generateQuery = async (input: string) => {
           sql: z.string().describe("The SQL query to execute")
         }))
       }),
+      onFinish({ result }: { result: { reasoning: string } }) {
+        console.log('Reasoning Output:', result.reasoning);
+      },
     });
     return result.object.queries;
   } catch (e) {
