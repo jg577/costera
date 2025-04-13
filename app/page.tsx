@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, createRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   generateChartConfig,
@@ -36,6 +36,14 @@ interface QuerySession {
   chartConfig: Config | null;
   insights: Insights | null;
   selectedQueryIndex: number;
+  ref: React.RefObject<HTMLDivElement | null>; // Add ref for scrolling to this session
+}
+
+// Define the conversation history structure
+interface ConversationItem {
+  type: 'user' | 'system';
+  content: string;
+  session?: QuerySession;
 }
 
 export default function Page() {
@@ -47,6 +55,9 @@ export default function Page() {
   const [loadingStep, setLoadingStep] = useState(1);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
+  // Conversation history for context in follow-up queries
+  const [conversationHistory, setConversationHistory] = useState<ConversationItem[]>([]);
+
   // Error handling states
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -55,14 +66,14 @@ export default function Page() {
   const searchBarRef = useRef<HTMLDivElement>(null);
   const resultsEndRef = useRef<HTMLDivElement>(null);
 
-  // Function to scroll to results end after new results are loaded
+  // Function to scroll to current session when it's created
   useEffect(() => {
-    if (submitted && !loading && resultsEndRef.current) {
+    if (currentSession?.ref.current && !loading) {
       setTimeout(() => {
-        resultsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 500);
+        currentSession.ref.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
-  }, [submitted, loading, querySessions.length]);
+  }, [currentSession, loading]);
 
   // When error dialog is closed, set the failed query to the input
   useEffect(() => {
@@ -84,6 +95,7 @@ export default function Page() {
     setQuerySessions([]);
     setCurrentSession(null);
     setFailedQuery("");
+    setConversationHistory([]);
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -93,6 +105,12 @@ export default function Page() {
     // Save the query in case it fails
     const queryText = inputValue;
 
+    // Add user's query to conversation history
+    setConversationHistory(prev => [
+      ...prev,
+      { type: 'user', content: queryText }
+    ]);
+
     // Clear the failed query
     setFailedQuery("");
 
@@ -101,14 +119,22 @@ export default function Page() {
     setLoadingStep(1);
 
     try {
+      // Prepare context from previous conversation for follow-up queries
+      const context = conversationHistory.length > 0
+        ? { previousQueries: conversationHistory }
+        : undefined;
+
       // First try to generate the SQL queries
-      const generatedQueries = await generateQuery(queryText);
+      const generatedQueries = await generateQuery(queryText, context);
 
       // If we get here, the SQL generation was successful
       // Now we can create the session and update the UI
 
       // Create a new session ID
       const sessionId = Date.now().toString();
+
+      // Create a ref for this session
+      const sessionRef = createRef<HTMLDivElement>();
 
       // Show that we've submitted something only after generating queries
       setSubmitted(true);
@@ -122,12 +148,23 @@ export default function Page() {
         queryResults: [],
         chartConfig: null,
         insights: null,
-        selectedQueryIndex: 0
+        selectedQueryIndex: 0,
+        ref: sessionRef
       };
 
       // Set as current session and add to sessions list
       setCurrentSession(newSession);
       setQuerySessions(prev => [...prev, newSession]);
+
+      // Add system response to conversation history
+      setConversationHistory(prev => [
+        ...prev,
+        {
+          type: 'system',
+          content: `Generated ${generatedQueries.length} SQL ${generatedQueries.length === 1 ? 'query' : 'queries'}`,
+          session: newSession
+        }
+      ]);
 
       // Execute the SQL queries
       setLoadingStep(2);
@@ -139,6 +176,15 @@ export default function Page() {
       setQuerySessions(prev => prev.map(session =>
         session.id === sessionId ? sessionWithResults : session
       ));
+
+      // Update conversation history with results
+      setConversationHistory(prev =>
+        prev.map(item =>
+          (item.type === 'system' && item.session?.id === sessionId)
+            ? { ...item, session: sessionWithResults }
+            : item
+        )
+      );
 
       setLoading(false);
 
@@ -152,6 +198,15 @@ export default function Page() {
         session.id === sessionId ? sessionWithChart : session
       ));
 
+      // Update conversation history with chart config
+      setConversationHistory(prev =>
+        prev.map(item =>
+          (item.type === 'system' && item.session?.id === sessionId)
+            ? { ...item, session: sessionWithChart }
+            : item
+        )
+      );
+
       // Generate insights from the data
       setLoadingInsights(true);
       try {
@@ -163,6 +218,15 @@ export default function Page() {
         setQuerySessions(prev => prev.map(session =>
           session.id === sessionId ? completeSession : session
         ));
+
+        // Final update to conversation history
+        setConversationHistory(prev =>
+          prev.map(item =>
+            (item.type === 'system' && item.session?.id === sessionId)
+              ? { ...item, session: completeSession }
+              : item
+          )
+        );
       } catch (error) {
         console.error("Failed to generate insights:", error);
         toast.error("Failed to generate insights. We'll keep the charts and tables ready for you.");
@@ -185,6 +249,12 @@ export default function Page() {
       // Show error dialog
       setErrorMessage("We couldn't process your query. Please try rephrasing or simplifying your question.");
       setErrorDialogOpen(true);
+
+      // Add error to conversation history
+      setConversationHistory(prev => [
+        ...prev,
+        { type: 'system', content: 'Error processing query' }
+      ]);
     }
   };
 
@@ -205,6 +275,21 @@ export default function Page() {
     if (currentSession?.id === sessionId) {
       setCurrentSession(prev => prev ? { ...prev, selectedQueryIndex: index } : null);
     }
+
+    // Update conversation history
+    setConversationHistory(prev =>
+      prev.map(item =>
+        (item.type === 'system' && item.session?.id === sessionId)
+          ? {
+            ...item,
+            session: {
+              ...item.session,
+              selectedQueryIndex: index
+            }
+          }
+          : item
+      )
+    );
   };
 
   // Handle error dialog close
@@ -225,7 +310,7 @@ export default function Page() {
     const isLoadingInsights = loadingInsights && currentSession?.id === session.id;
 
     return (
-      <div key={session.id} className="mb-12 pb-12 border-b border-border last:border-b-0">
+      <div key={session.id} ref={session.ref} className="mb-12 pb-12 border-b border-border last:border-b-0">
         <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           <span>{session.timestamp.toLocaleString()}</span>

@@ -1,12 +1,12 @@
 "use server";
 
-import { Config, configSchema, explanationsSchema, Result } from "@/lib/types";
+import { Config, configSchema, explanationsSchema, Result, SqlQuery } from "@/lib/types";
 import { openai } from "@ai-sdk/openai";
 import { sql } from "@vercel/postgres";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-export const generateQuery = async (input: string) => {
+export async function generateQuery(query: string, context?: any): Promise<SqlQuery[]> {
   "use server";
   try {
     const result = await generateObject({
@@ -349,7 +349,7 @@ export const generateQuery = async (input: string) => {
     4. Next put all this together.
     5. Revise the overall query and review/refactor as necessary.
     `,
-      prompt: `Generate the SQL query or queries necessary to retrieve the data the user wants: ${input}`,
+      prompt: `Generate the SQL query or queries necessary to retrieve the data the user wants: ${query}`,
       schema: z.object({
         queries: z.array(z.object({
           queryName: z.string().describe("A short name describing what this query calculates"),
@@ -363,7 +363,7 @@ export const generateQuery = async (input: string) => {
     console.error(e);
     throw new Error("Failed to generate query");
   }
-};
+}
 
 export const runGenerateSQLQuery = async (queries: { queryName: string; queryDescription: string; sql: string }[]) => {
   "use server";
