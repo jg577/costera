@@ -46,6 +46,24 @@ interface ConversationItem {
   session?: QuerySession;
 }
 
+// Component to show when a query is being processed
+const QueryProcessing = ({ step, question }: { step: number; question?: string }) => (
+  <div className="flex flex-col items-center justify-center min-h-[200px] p-8 mb-4 border-2 border-dashed border-muted rounded-md w-full space-y-4">
+    {question && (
+      <div className="bg-muted/30 p-3 rounded-lg mb-2 max-w-full w-full">
+        <div className="text-xs text-muted-foreground">Processing question:</div>
+        <div className="font-medium text-sm text-center mt-1">{question}</div>
+      </div>
+    )}
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <p className="text-foreground text-sm">
+      {step === 1
+        ? "Generating SQL queries..."
+        : "Running SQL queries..."}
+    </p>
+  </div>
+);
+
 export default function Page() {
   const [inputValue, setInputValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -54,6 +72,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(1);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [processingFollowUp, setProcessingFollowUp] = useState(false);
 
   // Conversation history for context in follow-up queries
   const [conversationHistory, setConversationHistory] = useState<ConversationItem[]>([]);
@@ -65,15 +84,16 @@ export default function Page() {
 
   const searchBarRef = useRef<HTMLDivElement>(null);
   const resultsEndRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLDivElement>(null);
 
   // Function to scroll to current session when it's created
   useEffect(() => {
-    if (currentSession?.ref.current && !loading) {
+    if (currentSession?.ref.current && !loading && !processingFollowUp) {
       setTimeout(() => {
         currentSession.ref.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [currentSession, loading]);
+  }, [currentSession, loading, processingFollowUp]);
 
   // When error dialog is closed, set the failed query to the input
   useEffect(() => {
@@ -81,9 +101,9 @@ export default function Page() {
       setInputValue(failedQuery);
 
       // Scroll to the search bar if we have results already
-      if (querySessions.length > 0 && resultsEndRef.current) {
+      if (querySessions.length > 0 && searchInputRef.current) {
         setTimeout(() => {
-          resultsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          searchInputRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
       }
     }
@@ -114,9 +134,21 @@ export default function Page() {
     // Clear the failed query
     setFailedQuery("");
 
-    // Only show loading state, don't create the session object yet
-    setLoading(true);
-    setLoadingStep(1);
+    // If this is a follow-up query (not the first query), show a processing indicator at the bottom
+    if (submitted) {
+      setProcessingFollowUp(true);
+
+      // Scroll to the search input area where we'll show the processing indicator
+      if (searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+      }
+    } else {
+      // Only show loading state, don't create the session object yet
+      setLoading(true);
+      setLoadingStep(1);
+    }
 
     try {
       // Prepare context from previous conversation for follow-up queries
@@ -186,7 +218,9 @@ export default function Page() {
         )
       );
 
+      // Set loading and processingFollowUp to false now that we have results
       setLoading(false);
+      setProcessingFollowUp(false);
 
       // Generate chart config for the query results
       const config = await generateChartConfig(results, queryText);
@@ -240,8 +274,9 @@ export default function Page() {
     } catch (error) {
       console.error("Failed to execute query:", error);
 
-      // Stop loading state
+      // Stop loading states
       setLoading(false);
+      setProcessingFollowUp(false);
 
       // Store the failed query
       setFailedQuery(queryText);
@@ -349,14 +384,7 @@ export default function Page() {
         )}
 
         {isCurrentlyLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-[200px] p-8 mb-4 border-2 border-dashed border-muted rounded-md w-full space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-foreground text-sm">
-              {loadingStep === 1
-                ? "Generating SQL queries..."
-                : "Running SQL queries..."}
-            </p>
-          </div>
+          <QueryProcessing step={loadingStep} question={session.userQuery} />
         ) : activeQueryResults.length === 0 ? (
           <div className="flex items-center justify-center p-8 mb-4 border-2 border-dashed border-muted rounded-md">
             <div className="text-center">
@@ -447,10 +475,18 @@ export default function Page() {
 
                         {/* Search bar always at the bottom */}
                         <div
-                          ref={resultsEndRef}
+                          ref={searchInputRef}
                           className="mt-8 pt-6 border-t border-border"
                         >
                           <h3 className="text-lg font-medium mb-4">Ask another question</h3>
+
+                          {/* Show processing indicator for follow-up queries */}
+                          {processingFollowUp ? (
+                            <div className="mb-6">
+                              <QueryProcessing step={loadingStep} question={inputValue} />
+                            </div>
+                          ) : null}
+
                           <Search
                             handleClear={handleClear}
                             handleSubmit={handleSubmit}
