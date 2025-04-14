@@ -361,9 +361,9 @@ export async function generateQuery(
     1. First pick the right columns that could be relevant from each table.
     2. Then come up with join keys for these tables
     3. Then come up with table-wise subqueries that are needed (this could include groubys, aggregages, or window functions)
-    4. Next put all this together.
+    4. Next mostly the queries are only useful if the number presented is compared against a previous period, so make sure to add last month, or last year comparisons when applicable.
     5. Revise the overall query and review/refactor as necessary.
-    6. Rewrite the query so that the results is in chart or plottable format, and always remove timetamps to day, month, year etc`,
+    6. Rewrite the query so that the results is in chart or plottable format, and always reduce timetamps to human readable day, month, year etc and on comparison queries, normalize to the same unit, number of days etc`,
     });
 
     // Add previous conversation context if available
@@ -730,15 +730,6 @@ export const generateChartConfig = async (
       - food_costs: Contains inventory costs, product details, and sales information
         - menu_mappings: Contains standardized mappings between adhoc menu item names and consistent product names
 
-      For menu item analytics, the standard approach is to join item_selection_details with menu_mappings:
-      
-      SELECT mp.product_name, SUM(isd.total_price) AS total_sales
-      FROM item_selection_details isd 
-      JOIN menu_mappings mp ON isd.menu_item = mp.item_name 
-      GROUP BY mp.product_name 
-      ORDER BY total_sales DESC
-      
-      This allows for standardized product analysis and visualization rather than working with inconsistent menu_item values.
 
       For time series analysis across tables(especially time_entries, food_costs, and item_selection_details):
   - First group by time periods(day, week, month) within each table
@@ -815,7 +806,7 @@ export const generateChartConfig = async (
     1. If you create a consolidated view(isConsolidated: true), you MUST include the 'labelFields' object in the consolidation configuration that maps field names to human - readable labels.
       2. For time series data, ensure the data is sorted chronologically FROM OLDER TO NEWER dates(oldest first, most recent last).
       3. Time must ALWAYS move forward - if data is missing for certain periods, SKIP those periods rather than breaking chronological order.
-      4. All time labels MUST include BOTH month and year(e.g., "Jan 2023") for clarity.
+      4. All time labels MUST include BOTH month and year(e.g., "Jan 2023") for clarity. please refrain from using timestamps and make the chart as human readable as possible.
       5. For monetary values(costs, revenue, sales), include dollar signs($) in labels and format numbers with commas for thousands.
       6. Make sure all monetary field labels include "($)" to indicate they represent dollar amounts.`,
     });

@@ -13,7 +13,7 @@ export const SuggestedQueries = ({
       mobile: "Hours by employee",
     },
     {
-      desktop: "Compare sales of different menu items last quarter",
+      desktop: "Compare sales of different menu items this month vs last month",
       mobile: "Menu sales comparison",
     },
     {
@@ -21,24 +21,12 @@ export const SuggestedQueries = ({
       mobile: "Staff productivity",
     },
     {
-      desktop: "Show the distribution of restaurant visits by day of week",
-      mobile: "Weekly visitors",
+      desktop: "Overall costs trend over time",
+      mobile: "Overall costs trend",
     },
     {
-      desktop: "Compare revenue vs. food costs for each menu item",
-      mobile: "Menu item profitability",
-    },
-    {
-      desktop: "What were our ingredient costs last month?",
-      mobile: "Ingredient costs",
-    },
-    {
-      desktop: "Show me sales trends for seasonal vs. regular menu items",
-      mobile: "Seasonal vs. regular",
-    },
-    {
-      desktop: "Compare efficiency between different shifts",
-      mobile: "Shift efficiency",
+      desktop: "How were overtime hours this week vs last week vs last month ",
+      mobile: "Overtime Report",
     },
   ];
 
