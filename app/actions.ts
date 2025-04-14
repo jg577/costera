@@ -743,11 +743,6 @@ export const generateChartConfig = async (
     - 'pie' - Pie Chart(good for showing proportions of a whole)
   - 'scatter' - Scatter Plot(good for showing correlation between two variables)
   - 'area' - Area Chart(good for showing cumulative totals over time)
-  - 'radar' - Radar Chart(good for comparing multiple variables)
-    - 'polar' - Polar Chart(good for cyclical or periodic data)
-  - 'gauge' - Gauge Chart(good for showing a single value in a range)
-  - 'heatmap' - Heatmap(good for showing patterns in a matrix)
-    - 'treemap' - Treemap(good for hierarchical data)
     - 'table' - Table(when data is better shown as a table than a chart)
       
       DATA FORMATTING REQUIREMENTS:
