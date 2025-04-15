@@ -13,11 +13,11 @@ export const SuggestedQueries = ({
       mobile: "Hours by employee",
     },
     {
-      desktop: "Compare sales of different menu items this month vs last month",
+      desktop: "Compare sales of different menu items over time",
       mobile: "Menu sales comparison",
     },
     {
-      desktop: "Which staff have the highest productivity?",
+      desktop: "Staff productivity - sales by total employee hours daily",
       mobile: "Staff productivity",
     },
     {
@@ -25,7 +25,7 @@ export const SuggestedQueries = ({
       mobile: "Overall costs trend",
     },
     {
-      desktop: "How were overtime hours this week vs last week vs last month ",
+      desktop: "Overtime hours report",
       mobile: "Overtime Report",
     },
   ];
