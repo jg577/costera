@@ -17,7 +17,7 @@ export const Header = ({ handleClear }: { handleClear: () => void }) => {
             className="transition-colors duration-200 hover:text-primary"
             onClick={(e) => e.stopPropagation()}
           >
-            12 Bones Brewing
+            12 Bones Smokehouse and Brewing
           </a>
         </h1>
         <div
