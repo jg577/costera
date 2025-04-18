@@ -342,14 +342,8 @@ export async function generateQuery(
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const queries = data.queries; // Directly access the queries field
-
-    return queries;
+    return result.object.queries;
+    
   } catch (error) {
     console.error("Error fetching queries:", error);
     throw error;
