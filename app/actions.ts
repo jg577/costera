@@ -13,15 +13,27 @@ import { openai } from "@ai-sdk/openai";
 export const generateQuery = async (input: string) => {
   "use server";
   try {
-    const response = await fetch('https://luna-backend-gamma.vercel.app/api/chat/completions', {
+    const response = await fetch('http://127.0.0.1:8000/api/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        messages: [`Generate the SQL query or queries necessary to retrieve the data the user wants: ${input}`],
-        schema: {},
-
+        messages: [
+          { role: "user", content: `${input}` }
+        ],
+        schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              queryName: { type: "string" },
+              queryDescription: { type: "string" },
+              sql: { type: "string" }
+            },
+            required: ["queryName", "queryDescription", "sql"]
+          }
+        }
       }),
     });
 
