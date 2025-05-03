@@ -2,6 +2,8 @@ import "./globals.css";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
+import { Nav } from "@/components/nav";
+import { SearchProvider } from "@/lib/search-context";
 
 export const metadata = {
   metadataBase: new URL("https://luna"),
@@ -19,7 +21,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${GeistMono.className} ${GeistSans.className}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <SearchProvider>
+            <Nav />
+            {children}
+          </SearchProvider>
         </ThemeProvider>
       </body>
     </html>
