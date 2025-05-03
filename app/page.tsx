@@ -9,7 +9,7 @@ import {
   generateDataInsights
 } from "./actions";
 import { Config, Result, SqlQuery, QueryResult, Insights } from "@/lib/types";
-import { Loader2, Clock, AlertCircle } from "lucide-react";
+import { Loader2, Clock, AlertCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Results } from "@/components/results";
 import { SuggestedQueries } from "@/components/suggested-queries";
@@ -49,12 +49,6 @@ interface ConversationItem {
 // Component to show when a query is being processed
 const QueryProcessing = ({ step, question }: { step: number; question?: string }) => (
   <div className="flex flex-col items-center justify-center min-h-[200px] p-8 mb-4 border-2 border-dashed border-muted rounded-md w-full space-y-4">
-    {question && (
-      <div className="bg-muted/30 p-3 rounded-lg mb-2 max-w-full w-full">
-        <div className="text-xs text-muted-foreground">Processing question:</div>
-        <div className="font-medium text-sm text-center mt-1">{question}</div>
-      </div>
-    )}
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
     <p className="text-foreground text-sm">
       {step === 1
@@ -72,7 +66,8 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(1);
   const [loadingInsights, setLoadingInsights] = useState(false);
-  const [processingFollowUp, setProcessingFollowUp] = useState(false);
+  // Track which sessions have their SQL details expanded
+  const [expandedSqlSessions, setExpandedSqlSessions] = useState<{[sessionId: string]: boolean}>({});
 
   // Conversation history for context in follow-up queries
   const [conversationHistory, setConversationHistory] = useState<ConversationItem[]>([]);
@@ -88,12 +83,12 @@ export default function Page() {
 
   // Function to scroll to current session when it's created
   useEffect(() => {
-    if (currentSession?.ref.current && !loading && !processingFollowUp) {
+    if (currentSession?.ref.current && !loading) {
       setTimeout(() => {
         currentSession.ref.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [currentSession, loading, processingFollowUp]);
+  }, [currentSession, loading]);
 
   // When error dialog is closed, set the failed query to the input
   useEffect(() => {
@@ -124,6 +119,9 @@ export default function Page() {
 
     // Save the query in case it fails
     const queryText = inputValue;
+    
+    // Clear input for next query immediately
+    setInputValue("");
 
     // Add user's query to conversation history
     setConversationHistory(prev => [
@@ -134,20 +132,17 @@ export default function Page() {
     // Clear the failed query
     setFailedQuery("");
 
-    // If this is a follow-up query (not the first query), show a processing indicator at the bottom
-    if (submitted) {
-      setProcessingFollowUp(true);
+    // Show loading state for both initial and follow-up queries
+    setLoading(true);
+    setLoadingStep(1);
 
-      // Scroll to the search input area where we'll show the processing indicator
+    // If this is a follow-up query, scroll to the results area
+    if (submitted) {
       if (searchInputRef.current) {
         setTimeout(() => {
           searchInputRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 50);
       }
-    } else {
-      // Only show loading state, don't create the session object yet
-      setLoading(true);
-      setLoadingStep(1);
     }
 
     try {
@@ -159,16 +154,13 @@ export default function Page() {
       // First try to generate the SQL queries
       const generatedQueries = await generateQuery(queryText, context);
 
-      // If we get here, the SQL generation was successful
-      // Now we can create the session and update the UI
-
       // Create a new session ID
       const sessionId = Date.now().toString();
 
       // Create a ref for this session
       const sessionRef = createRef<HTMLDivElement>();
 
-      // Show that we've submitted something only after generating queries
+      // Show that we've submitted something
       setSubmitted(true);
 
       // Create initial session object
@@ -218,9 +210,8 @@ export default function Page() {
         )
       );
 
-      // Set loading and processingFollowUp to false now that we have results
+      // Set loading to false now that we have results
       setLoading(false);
-      setProcessingFollowUp(false);
 
       // Generate chart config for the query results
       const config = await generateChartConfig(results, queryText);
@@ -268,15 +259,11 @@ export default function Page() {
         setLoadingInsights(false);
       }
 
-      // Clear input for next query
-      setInputValue("");
-
     } catch (error) {
       console.error("Failed to execute query:", error);
 
       // Stop loading states
       setLoading(false);
-      setProcessingFollowUp(false);
 
       // Store the failed query
       setFailedQuery(queryText);
@@ -293,11 +280,178 @@ export default function Page() {
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setInputValue(suggestion);
-    setTimeout(() => {
-      handleSubmit();
-    }, 100);
+  const handleSuggestionClick = (suggestion: string, predefinedSql?: string) => {
+    // If we have predefined SQL, bypass the normal query generation
+    if (predefinedSql) {
+      processPredefinedQuery(suggestion, predefinedSql);
+    } else {
+      // Store the suggestion for processing but don't set it in the input field
+      const queryToProcess = suggestion;
+      setTimeout(() => {
+        // Call handleSubmit with the suggestion directly
+        const originalInputValue = inputValue;
+        setInputValue(queryToProcess);
+        handleSubmit();
+        // The input will be cleared by handleSubmit, so we don't need to restore
+      }, 100);
+    }
+  };
+
+  // New function to handle predefined SQL queries
+  const processPredefinedQuery = async (queryText: string, predefinedSql: string) => {
+    if (!queryText.trim() || !predefinedSql.trim()) return;
+    
+    // Clear input for next query immediately
+    setInputValue("");
+
+    // Show loading state
+    setLoading(true);
+    setLoadingStep(1);
+
+    // If this is a follow-up query, scroll to the results area
+    if (submitted) {
+      if (searchInputRef.current) {
+        setTimeout(() => {
+          searchInputRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+      }
+    }
+
+    try {
+      // Add user's query to conversation history
+      setConversationHistory(prev => [
+        ...prev,
+        { type: 'user', content: queryText }
+      ]);
+
+      // Create a new session ID
+      const sessionId = Date.now().toString();
+      const sessionRef = createRef<HTMLDivElement>();
+
+      // Create predefined query object - we're directly using the predefined SQL
+      const predefinedQueries: SqlQuery[] = [
+        {
+          queryName: "Predefined Query",
+          queryDescription: "This is a predefined query from the suggested queries list",
+          sql: predefinedSql
+        }
+      ];
+
+      // Show that we've submitted something
+      setSubmitted(true);
+
+      // Create initial session object
+      const newSession: QuerySession = {
+        id: sessionId,
+        userQuery: queryText,
+        timestamp: new Date(),
+        sqlQueries: predefinedQueries,
+        queryResults: [],
+        chartConfig: null,
+        insights: null,
+        selectedQueryIndex: 0,
+        ref: sessionRef
+      };
+
+      // Set as current session and add to sessions list
+      setCurrentSession(newSession);
+      setQuerySessions(prev => [...prev, newSession]);
+
+      // Add system response to conversation history
+      setConversationHistory(prev => [
+        ...prev,
+        {
+          type: 'system',
+          content: `Using predefined SQL query`,
+          session: newSession
+        }
+      ]);
+
+      // Execute the SQL query
+      setLoadingStep(2);
+      const results = await runGenerateSQLQuery(predefinedQueries);
+
+      // Update the session with results
+      const sessionWithResults = { ...newSession, queryResults: results };
+      setCurrentSession(sessionWithResults);
+      setQuerySessions(prev => prev.map(session =>
+        session.id === sessionId ? sessionWithResults : session
+      ));
+
+      // Update conversation history with results
+      setConversationHistory(prev =>
+        prev.map(item =>
+          (item.type === 'system' && item.session?.id === sessionId)
+            ? { ...item, session: sessionWithResults }
+            : item
+        )
+      );
+
+      // Set loading state to false
+      setLoading(false);
+
+      // Generate chart config for the query results
+      const config = await generateChartConfig(results, queryText);
+
+      // Update the session with chart config
+      const sessionWithChart = { ...sessionWithResults, chartConfig: config };
+      setCurrentSession(sessionWithChart);
+      setQuerySessions(prev => prev.map(session =>
+        session.id === sessionId ? sessionWithChart : session
+      ));
+
+      // Update conversation history with chart config
+      setConversationHistory(prev =>
+        prev.map(item =>
+          (item.type === 'system' && item.session?.id === sessionId)
+            ? { ...item, session: sessionWithChart }
+            : item
+        )
+      );
+
+      // Generate insights from the data
+      setLoadingInsights(true);
+      try {
+        const dataInsights = await generateDataInsights(results, queryText);
+
+        // Final update with insights
+        const completeSession = { ...sessionWithChart, insights: dataInsights };
+        setCurrentSession(completeSession);
+        setQuerySessions(prev => prev.map(session =>
+          session.id === sessionId ? completeSession : session
+        ));
+
+        // Final update to conversation history
+        setConversationHistory(prev =>
+          prev.map(item =>
+            (item.type === 'system' && item.session?.id === sessionId)
+              ? { ...item, session: completeSession }
+              : item
+          )
+        );
+      } catch (error) {
+        console.error("Failed to generate insights:", error);
+        toast.error("Failed to generate insights. We'll keep the charts and tables ready for you.");
+      } finally {
+        setLoadingInsights(false);
+      }
+
+    } catch (error) {
+      console.error("Failed to execute predefined query:", error);
+      
+      // Stop loading states
+      setLoading(false);
+      
+      // Show error dialog
+      setErrorMessage("We couldn't process the predefined query. Please try a different question.");
+      setErrorDialogOpen(true);
+      
+      // Add error to conversation history
+      setConversationHistory(prev => [
+        ...prev,
+        { type: 'system', content: 'Error processing predefined query' }
+      ]);
+    }
   };
 
   const handleQuerySelect = (sessionId: string, index: number) => {
@@ -332,6 +486,14 @@ export default function Page() {
     setErrorDialogOpen(false);
   };
 
+  // Toggle SQL details visibility for a session
+  const toggleSqlDetails = (sessionId: string) => {
+    setExpandedSqlSessions(prev => ({
+      ...prev,
+      [sessionId]: !prev[sessionId]
+    }));
+  };
+
   // Render a single query session
   const renderQuerySession = (session: QuerySession) => {
     const activeQuery = session.sqlQueries.length > 0 ? session.sqlQueries[session.selectedQueryIndex]?.sql || "" : "";
@@ -343,6 +505,9 @@ export default function Page() {
 
     const isCurrentlyLoading = loading && currentSession?.id === session.id;
     const isLoadingInsights = loadingInsights && currentSession?.id === session.id;
+    
+    // Get the expanded state for this session
+    const showSqlDetails = expandedSqlSessions[session.id] || false;
 
     return (
       <div key={session.id} ref={session.ref} className="mb-12 pb-12 border-b border-border last:border-b-0">
@@ -357,51 +522,76 @@ export default function Page() {
           <div className="font-medium">{session.userQuery}</div>
         </div>
 
-        {session.sqlQueries.length > 0 && (
-          <>
-            {session.sqlQueries.length > 1 && (
-              <div className="flex overflow-x-auto gap-2 mb-3">
-                {session.sqlQueries.map((query, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuerySelect(session.id, index)}
-                    className={`px-3 py-1 text-sm rounded-md whitespace-nowrap transition-colors ${session.selectedQueryIndex === index
-                      ? "bg-primary text-primary-foreground"
-                      : "tab-button"
-                      }`}
-                  >
-                    {query.queryName}
-                  </button>
-                ))}
-              </div>
-            )}
-            <QueryViewer
-              activeQuery={activeQuery}
-              activeQueryName={activeQueryName}
-              inputValue={session.userQuery}
-            />
-          </>
-        )}
-
+        {/* Only show SQL details and results when not loading */}
         {isCurrentlyLoading ? (
           <QueryProcessing step={loadingStep} question={session.userQuery} />
-        ) : activeQueryResults.length === 0 ? (
-          <div className="flex items-center justify-center p-8 mb-4 border-2 border-dashed border-muted rounded-md">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-1">No results found</p>
-              <p className="text-sm text-muted-foreground">Try rephrasing your question or adjusting your search terms</p>
-            </div>
-          </div>
         ) : (
-          <Results
-            results={activeQueryResults}
-            chartConfig={session.chartConfig}
-            insights={session.insights}
-            loadingInsights={isLoadingInsights}
-            columns={columns}
-            queryResults={session.queryResults}
-            selectedQueryIndex={session.selectedQueryIndex}
-          />
+          <>
+            {/* Only show SQL section when not loading */}
+            {session.sqlQueries.length > 0 && (
+              <>
+                {/* SQL Query Toggle Button */}
+                <div className="mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => toggleSqlDetails(session.id)}
+                    className="text-xs flex items-center gap-2"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {showSqlDetails ? "Hide SQL Details" : "Show SQL Details"}
+                  </Button>
+                </div>
+                
+                {/* SQL Query Details (collapsible) */}
+                {showSqlDetails && (
+                  <>
+                    {session.sqlQueries.length > 1 && (
+                      <div className="flex overflow-x-auto gap-2 mb-3">
+                        {session.sqlQueries.map((query, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleQuerySelect(session.id, index)}
+                            className={`px-3 py-1 text-sm rounded-md whitespace-nowrap transition-colors ${session.selectedQueryIndex === index
+                              ? "bg-primary text-primary-foreground"
+                              : "tab-button"
+                              }`}
+                          >
+                            {query.queryName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <QueryViewer
+                      activeQuery={activeQuery}
+                      activeQueryName={activeQueryName}
+                      inputValue={session.userQuery}
+                    />
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Results or no results message */}
+            {activeQueryResults.length === 0 ? (
+              <div className="flex items-center justify-center p-8 mb-4 border-2 border-dashed border-muted rounded-md">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-1">No results found</p>
+                  <p className="text-sm text-muted-foreground">Try rephrasing your question or adjusting your search terms</p>
+                </div>
+              </div>
+            ) : (
+              <Results
+                results={activeQueryResults}
+                chartConfig={session.chartConfig}
+                insights={session.insights}
+                loadingInsights={isLoadingInsights}
+                columns={columns}
+                queryResults={session.queryResults}
+                selectedQueryIndex={session.selectedQueryIndex}
+              />
+            )}
+          </>
         )}
       </div>
     );
@@ -473,28 +663,30 @@ export default function Page() {
                         {/* Render all query sessions in sequence */}
                         {querySessions.map(session => renderQuerySession(session))}
 
-                        {/* Search bar always at the bottom */}
-                        <div
-                          ref={searchInputRef}
-                          className="mt-8 pt-6 border-t border-border"
-                        >
-                          <h3 className="text-lg font-medium mb-4">Ask another question</h3>
+                        {/* Only show the search bar and suggested queries after loading is complete */}
+                        {!loading && (
+                          <div
+                            ref={searchInputRef}
+                            className="mt-8 pt-6 border-t border-border"
+                          >
+                            <h3 className="text-lg font-medium mb-4">Ask another question</h3>
 
-                          {/* Show processing indicator for follow-up queries */}
-                          {processingFollowUp ? (
-                            <div className="mb-6">
-                              <QueryProcessing step={loadingStep} question={inputValue} />
+                            <Search
+                              handleClear={handleClear}
+                              handleSubmit={handleSubmit}
+                              inputValue={inputValue}
+                              setInputValue={setInputValue}
+                              submitted={submitted}
+                            />
+                            
+                            {/* Display suggested queries again */}
+                            <div className="mt-8">
+                              <SuggestedQueries
+                                handleSuggestionClick={handleSuggestionClick}
+                              />
                             </div>
-                          ) : null}
-
-                          <Search
-                            handleClear={handleClear}
-                            handleSubmit={handleSubmit}
-                            inputValue={inputValue}
-                            setInputValue={setInputValue}
-                            submitted={submitted}
-                          />
-                        </div>
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
