@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, createRef } from "react";
+import { useState, useRef, useEffect, createRef, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   generateChartConfig,
@@ -61,6 +61,20 @@ const QueryProcessing = ({ step, question }: { step: number; question?: string }
   </div>
 );
 
+// Component that uses useSearchParams
+function SearchParamsHandler({ setInputValue }: { setInputValue: (value: string) => void }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const input = searchParams.get('input');
+    if (input) {
+      setInputValue(decodeURIComponent(input));
+    }
+  }, [searchParams, setInputValue]);
+  
+  return null;
+}
+
 export default function Page() {
   const [inputValue, setInputValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -82,18 +96,11 @@ export default function Page() {
 
   const searchBarRef = useRef<HTMLDivElement>(null);
   const resultsEndRef = useRef<HTMLDivElement>(null);
-
+  const searchInputRef = useRef<HTMLDivElement>(null);
+  
   const { searchInput, setSearchInput } = useSearch();
 
-  const searchParams = useSearchParams();
-  const initialValue = searchParams.get('initialValue');
-
-  useEffect(() => {
-    const input = searchParams.get('input');
-    if (input) {
-      setInputValue(decodeURIComponent(input));
-    }
-  }, [searchParams]);
+  // This effect has been moved to the SearchParamsHandler component
 
   // Function to scroll to current session when it's created
   useEffect(() => {
@@ -627,6 +634,11 @@ export default function Page() {
 
   return (
     <div className="bg-background flex items-start justify-center p-0 sm:p-8 min-h-screen">
+      {/* Wrap SearchParamsHandler in Suspense boundary */}
+      <Suspense fallback={null}>
+        <SearchParamsHandler setInputValue={setInputValue} />
+      </Suspense>
+      
       <div className="w-full max-w-4xl min-h-dvh sm:min-h-0 flex flex-col">
         <motion.div
           className="surface bg-card rounded-md flex-grow flex flex-col"
