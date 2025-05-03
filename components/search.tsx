@@ -2,19 +2,21 @@ import { Search as SearchIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
-export const Search = ({
+interface SearchProps {
+  handleClear: () => void;
+  handleSubmit: (e?: React.FormEvent) => Promise<void>;
+  inputValue: string;
+  setInputValue: (value: string) => void;
+  submitted: boolean;
+}
+
+export function Search({
+  handleClear,
   handleSubmit,
   inputValue,
   setInputValue,
-  submitted,
-  handleClear,
-}: {
-  handleSubmit: () => Promise<void>;
-  inputValue: string;
-  setInputValue: React.Dispatch<React.SetStateAction<string>>;
-  submitted: boolean;
-  handleClear: () => void;
-}) => {
+  submitted
+}: SearchProps) {
   return (
     <form
       onSubmit={async (e) => {
@@ -66,4 +68,4 @@ export const Search = ({
       </div>
     </form>
   );
-};
+}

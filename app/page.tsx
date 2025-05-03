@@ -25,6 +25,9 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Chat } from "@/components/chat";
+import { useSearch } from "@/lib/search-context";
+import { useSearchParams } from "next/navigation";
 
 // Define a type for a complete query session
 interface QuerySession {
@@ -79,7 +82,18 @@ export default function Page() {
 
   const searchBarRef = useRef<HTMLDivElement>(null);
   const resultsEndRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLDivElement>(null);
+
+  const { searchInput, setSearchInput } = useSearch();
+
+  const searchParams = useSearchParams();
+  const initialValue = searchParams.get('initialValue');
+
+  useEffect(() => {
+    const input = searchParams.get('input');
+    if (input) {
+      setInputValue(decodeURIComponent(input));
+    }
+  }, [searchParams]);
 
   // Function to scroll to current session when it's created
   useEffect(() => {
@@ -103,6 +117,20 @@ export default function Page() {
       }
     }
   }, [errorDialogOpen, failedQuery, querySessions.length]);
+
+  useEffect(() => {
+    if (searchInput) {
+      // Find the input element and set its value
+      const inputElement = document.querySelector('textarea[placeholder="Ask a question..."]') as HTMLTextAreaElement;
+      if (inputElement) {
+        inputElement.value = searchInput;
+        // Focus the input
+        inputElement.focus();
+        // Clear the search input
+        setSearchInput("");
+      }
+    }
+  }, [searchInput, setSearchInput]);
 
   const handleClear = () => {
     setInputValue("");
