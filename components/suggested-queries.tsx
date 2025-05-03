@@ -135,7 +135,7 @@ export const SuggestedQueries = ({
       queries: [
         {
           desktop: "Show me the items that cost per lbs is at or near 52 week highs",
-          mobile: "",
+          mobile: "Items Near 52 Week Highs",
           sql: `WITH annual_spend AS (
                     SELECT
                         cg.item,
