@@ -12,7 +12,6 @@ import { sql } from "@vercel/postgres";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { luna } from "@/lib/luna-provider";
-import { openai } from "@ai-sdk/openai";
 
 
 // Create a Luna backend instance
