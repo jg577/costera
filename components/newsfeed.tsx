@@ -64,7 +64,7 @@ export function Newsfeed() {
         const fetchNews = async () => {
             try {
                 //In production, replace with actual API call
-                const response = await fetch('http://127.0.0.1:8000/api/news');
+                const response = await fetch('https://luna-backend-gamma.vercel.app/api/news');
                 const data = await response.json();
                 setNewsItems(data);
 
