@@ -11,6 +11,7 @@ interface NewsItem {
     title: string;
     description: string;
     severity: Severity;
+    date: string;      // New field from backend
     timestamp: string;
     imageUrl?: string;
 }
@@ -22,6 +23,7 @@ const mockNewsItems: NewsItem[] = [
         title: "System Update",
         description: "New features have been deployed to improve performance.",
         severity: "neutral",
+        date: "2024-04-25",
         timestamp: "2024-04-25T10:00:00Z",
         imageUrl: "https://picsum.photos/800/400"
     },
@@ -30,6 +32,7 @@ const mockNewsItems: NewsItem[] = [
         title: "High Traffic Alert",
         description: "Unusual spike in user activity detected.",
         severity: "neutral",
+        date: "2024-04-25",
         timestamp: "2024-04-25T09:30:00Z"
     },
     {
@@ -37,14 +40,16 @@ const mockNewsItems: NewsItem[] = [
         title: "Critical Error",
         description: "Database connection issues reported in production.",
         severity: "bad",
-        timestamp: "2024-04-25T09:00:00Z"
+        date: "2024-04-24",
+        timestamp: "2024-04-24T09:00:00Z"
     },
     {
         id: "4",
         title: "Deployment Success",
         description: "New version successfully deployed to all regions.",
         severity: "good",
-        timestamp: "2024-04-25T08:30:00Z",
+        date: "2024-04-23",
+        timestamp: "2024-04-23T08:30:00Z",
         imageUrl: "https://picsum.photos/800/400"
     }
 ];
@@ -53,6 +58,44 @@ const severityColors = {
     good: "bg-green-500",
     neutral: "bg-yellow-500",
     bad: "bg-red-500"
+};
+
+// Helper function to format date as a readable string
+const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Format the date objects to YYYY-MM-DD for comparison
+    const formatYMD = (d: Date) => d.toISOString().split('T')[0];
+    
+    if (formatYMD(date) === formatYMD(today)) {
+        return "Today";
+    } else if (formatYMD(date) === formatYMD(yesterday)) {
+        return "Yesterday";
+    } else {
+        return date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    }
+};
+
+// Group news items by date
+const groupByDate = (items: NewsItem[]): Map<string, NewsItem[]> => {
+    const grouped = new Map<string, NewsItem[]>();
+    
+    items.forEach(item => {
+        const dateKey = item.date;
+        if (!grouped.has(dateKey)) {
+            grouped.set(dateKey, []);
+        }
+        grouped.get(dateKey)?.push(item);
+    });
+    
+    return grouped;
 };
 
 export function Newsfeed() {
@@ -93,34 +136,56 @@ export function Newsfeed() {
         );
     }
 
+    // Sort news items by timestamp (newest first)
+    const sortedItems = [...newsItems].sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    
+    // Group items by date
+    const groupedItems = groupByDate(sortedItems);
+    
+    // Convert to array of [dateString, items] and sort by date (newest first)
+    const groupedItemsArray = Array.from(groupedItems.entries())
+        .sort(([dateA], [dateB]) => 
+            new Date(dateB).getTime() - new Date(dateA).getTime()
+        );
+
     return (
         <div className="space-y-6">
-            {newsItems.map((item) => (
-                <div
-                    key={item.id}
-                    onClick={() => handleItemClick(item.description)}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-                >
-                    <div className="p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-3 h-3 rounded-full ${severityColors[item.severity]}`} />
-                            <h2 className="text-xl font-semibold text-gray-900">{item.title}</h2>
-                        </div>
-                        <p className="text-gray-600 mb-4">{item.description}</p>
-                        <div className="text-sm text-gray-500 mb-4">
-                            {new Date(item.timestamp).toLocaleString()}
-                        </div>
-                        {item.imageUrl && (
-                            <div className="relative h-48 w-full">
-                                <Image
-                                    src={item.imageUrl}
-                                    alt={item.title}
-                                    fill
-                                    className="object-cover rounded-lg"
-                                />
+            {groupedItemsArray.map(([dateString, items]) => (
+                <div key={dateString} className="space-y-4">
+                    <h3 className="text-xl font-bold text-gray-800 py-3 px-1">
+                        {formatDate(dateString)}
+                    </h3>
+                    
+                    {items.map((item) => (
+                        <div
+                            key={item.id}
+                            onClick={() => handleItemClick(item.description)}
+                            className="bg-gray-50 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+                        >
+                            <div className="p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-3 h-3 rounded-full ${severityColors[item.severity]}`} />
+                                    <h2 className="text-base font-medium text-gray-900">{item.title}</h2>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                                <div className="text-xs text-gray-500 mb-3">
+                                    {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                {item.imageUrl && (
+                                    <div className="relative h-40 w-full">
+                                        <Image
+                                            src={item.imageUrl}
+                                            alt={item.title}
+                                            fill
+                                            className="object-cover rounded-lg"
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ))}
                 </div>
             ))}
         </div>
