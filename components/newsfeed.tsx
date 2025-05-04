@@ -60,35 +60,13 @@ const severityColors = {
     bad: "bg-red-500"
 };
 
-// Helper function to format date as a readable string
-const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // Format the date objects to YYYY-MM-DD for comparison
-    const formatYMD = (d: Date) => d.toISOString().split('T')[0];
-    
-    if (formatYMD(date) === formatYMD(today)) {
-        return "Today";
-    } else if (formatYMD(date) === formatYMD(yesterday)) {
-        return "Yesterday";
-    } else {
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-    }
-};
-
 // Group news items by date
 const groupByDate = (items: NewsItem[]): Map<string, NewsItem[]> => {
     const grouped = new Map<string, NewsItem[]>();
     
     items.forEach(item => {
         const dateKey = item.date;
+        
         if (!grouped.has(dateKey)) {
             grouped.set(dateKey, []);
         }
@@ -98,6 +76,7 @@ const groupByDate = (items: NewsItem[]): Map<string, NewsItem[]> => {
     return grouped;
 };
 
+
 export function Newsfeed() {
     const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -106,15 +85,16 @@ export function Newsfeed() {
     useEffect(() => {
         const fetchNews = async () => {
             try {
-                //In production, replace with actual API call
-                const response = await fetch('https://luna-backend-gamma.vercel.app/api/news');
+                // Use a very large limit to get all news items (effectively no limit)
+                const response = await fetch('https://luna-backend-gamma.vercel.app/api/news?limit=1000');
                 const data = await response.json();
+                
+                // Just use the data as-is from the API
                 setNewsItems(data);
-
-                // // Using mock data for now
-                // setNewsItems(mockNewsItems);
             } catch (error) {
                 console.error('Error fetching news:', error);
+                // Fall back to mock data
+                setNewsItems(mockNewsItems);
             } finally {
                 setLoading(false);
             }
@@ -140,22 +120,22 @@ export function Newsfeed() {
     const sortedItems = [...newsItems].sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
+    console.log("Sorted news items:", sortedItems);
     
     // Group items by date
     const groupedItems = groupByDate(sortedItems);
+    console.log(groupedItems);
     
     // Convert to array of [dateString, items] and sort by date (newest first)
     const groupedItemsArray = Array.from(groupedItems.entries())
-        .sort(([dateA], [dateB]) => 
-            new Date(dateB).getTime() - new Date(dateA).getTime()
-        );
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
 
     return (
         <div className="space-y-6">
             {groupedItemsArray.map(([dateString, items]) => (
-                <div key={dateString} className="space-y-4">
-                    <h3 className="text-xl font-bold text-gray-800 py-3 px-1">
-                        {formatDate(dateString)}
+                <div key={dateString} className="space-y-4 mb-8 border-b pb-4 last:border-b-0">
+                    <h3 className="text-xl font-bold text-gray-800 py-3 px-1 border-l-4 border-gray-500 pl-2">
+                        {dateString} ({items.length} items)
                     </h3>
                     
                     {items.map((item) => (
