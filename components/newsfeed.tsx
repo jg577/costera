@@ -56,8 +56,20 @@ const mockNewsItems: NewsItem[] = [
 
 const severityColors = {
     good: "bg-green-500",
-    neutral: "bg-yellow-500",
+    neutral: "bg-amber-500",
     bad: "bg-red-500"
+};
+
+const severityBorderColors = {
+    good: "border-green-500",
+    neutral: "border-amber-500",
+    bad: "border-red-500"
+};
+
+const severityTextColors = {
+    good: "text-green-700",
+    neutral: "text-amber-700",
+    bad: "text-red-700"
 };
 
 // Group news items by date
@@ -88,6 +100,29 @@ const mapSeverity = (severityValue: Severity | number): Severity => {
         case 0: return "neutral";
         case 1: return "good";
         default: return "neutral";
+    }
+};
+
+// Helper function to format date with day of week
+const formatDateWithDay = (dateString: string): string => {
+    const date = new Date(dateString);
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = days[date.getDay()];
+    return `${dayOfWeek}, ${dateString}`;
+};
+
+// Helper function to get numeric severity value
+const getSeverityValue = (severity: Severity | number): number => {
+    if (typeof severity === 'number') {
+        return severity;
+    }
+    
+    // Map string severity to numeric value
+    switch (severity) {
+        case "bad": return -1;
+        case "neutral": return 0;
+        case "good": return 1;
+        default: return 0;
     }
 };
 
@@ -139,46 +174,63 @@ export function Newsfeed() {
     const groupedItems = groupByDate(sortedItems);
     console.log(groupedItems);
     
-    // Convert to array of [dateString, items] and sort by date (newest first)
+    // Convert to array of [dateString, items], sort by date (newest first), and sort items by severity
     const groupedItemsArray = Array.from(groupedItems.entries())
-        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+        .map(([date, items]) => {
+            // Sort items by severity (from most severe to least severe)
+            const sortedByPriority = [...items].sort((a, b) => 
+                getSeverityValue(a.severity) - getSeverityValue(b.severity)
+            );
+            return [date, sortedByPriority] as [string, NewsItem[]];
+        });
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {groupedItemsArray.map(([dateString, items]) => (
-                <div key={dateString} className="space-y-4 mb-8 border-b pb-4 last:border-b-0">
-                    <h3 className="text-xl font-bold text-gray-800 py-3 px-1 border-l-4 border-gray-500 pl-2">
-                        {dateString} ({items.length} items)
+                <div key={dateString} className="space-y-3 mb-6 pb-4 last:border-b-0">
+                    <h3 className="text-lg font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 pl-3 bg-blue-50 rounded-r-md shadow-sm mb-3">
+                        {formatDateWithDay(dateString)} 
+                        <span className="ml-2 text-blue-600">({items.length} alerts)</span>
                     </h3>
                     
-                    {items.map((item) => (
-                        <div
-                            key={item.id}
-                            onClick={() => handleItemClick(item.description)}
-                            className="bg-gray-50 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-                        >
-                            <div className="p-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className={`w-3 h-3 rounded-full ${severityColors[mapSeverity(item.severity)]}`} />
-                                    <h2 className="text-base font-medium text-gray-900">{item.title}</h2>
-                                </div>
-                                <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                                <div className="text-xs text-gray-500 mb-3">
-                                    {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                {item.imageUrl && (
-                                    <div className="relative h-40 w-full">
-                                        <Image
-                                            src={item.imageUrl}
-                                            alt={item.title}
-                                            fill
-                                            className="object-cover rounded-lg"
-                                        />
+                    <div className="space-y-2">
+                        {items.map((item: NewsItem) => {
+                            const mappedSeverity = mapSeverity(item.severity);
+                            return (
+                                <div
+                                    key={item.id}
+                                    onClick={() => handleItemClick(item.description)}
+                                    className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer border-l-4 ${severityBorderColors[mappedSeverity]} transform hover:-translate-y-px`}
+                                >
+                                    <div className="p-3.5 flex flex-row items-center">
+                                        <div className="flex-grow">
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <div className={`w-2.5 h-2.5 rounded-full ${severityColors[mappedSeverity]}`} />
+                                                <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
+                                            </div>
+                                            <p className="text-sm text-gray-700 line-clamp-1">{item.description}</p>
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                                <div className={`text-xs font-medium ${severityTextColors[mappedSeverity]} inline-block px-2.5 py-0.5 rounded-full bg-gray-100`}>
+                                                    {mappedSeverity.charAt(0).toUpperCase() + mappedSeverity.slice(1)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {item.imageUrl && (
+                                            <div className="relative h-20 w-28 ml-4 rounded-md overflow-hidden flex-shrink-0">
+                                                <Image
+                                                    src={item.imageUrl}
+                                                    alt={item.title}
+                                                    fill
+                                                    className="object-cover hover:scale-105 transition-transform duration-300"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             ))}
         </div>
