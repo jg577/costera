@@ -10,7 +10,7 @@ interface NewsItem {
     id: string;
     title: string;
     description: string;
-    severity: Severity;
+    severity: Severity | number;
     date: string;      // New field from backend
     timestamp: string;
     imageUrl?: string;
@@ -35,7 +35,7 @@ const mockNewsItems: NewsItem[] = [
         date: "2024-04-25",
         timestamp: "2024-04-25T09:30:00Z"
     },
-    {
+    { 
         id: "3",
         title: "Critical Error",
         description: "Database connection issues reported in production.",
@@ -76,6 +76,20 @@ const groupByDate = (items: NewsItem[]): Map<string, NewsItem[]> => {
     return grouped;
 };
 
+// Map numeric severity to Severity type
+const mapSeverity = (severityValue: Severity | number): Severity => {
+    if (typeof severityValue === 'string') {
+        return severityValue as Severity;
+    }
+    
+    // Map numeric values (-1, 0, 1) to severity types
+    switch (severityValue) {
+        case -1: return "bad";
+        case 0: return "neutral";
+        case 1: return "good";
+        default: return "neutral";
+    }
+};
 
 export function Newsfeed() {
     const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -120,7 +134,6 @@ export function Newsfeed() {
     const sortedItems = [...newsItems].sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-    console.log("Sorted news items:", sortedItems);
     
     // Group items by date
     const groupedItems = groupByDate(sortedItems);
@@ -146,7 +159,7 @@ export function Newsfeed() {
                         >
                             <div className="p-4">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <div className={`w-3 h-3 rounded-full ${severityColors[item.severity]}`} />
+                                    <div className={`w-3 h-3 rounded-full ${severityColors[mapSeverity(item.severity)]}`} />
                                     <h2 className="text-base font-medium text-gray-900">{item.title}</h2>
                                 </div>
                                 <p className="text-sm text-gray-600 mb-2">{item.description}</p>
