@@ -105,10 +105,13 @@ const mapSeverity = (severityValue: Severity | number): Severity => {
 
 // Helper function to format date with day of week
 const formatDateWithDay = (dateString: string): string => {
-    const date = new Date(dateString);
+    // Parse as local date, not UTC
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // JS months are 0-based
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayOfWeek = days[date.getDay()];
-    return `${dayOfWeek}, ${dateString}`;
+    const formattedDate = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return `${dayOfWeek}, ${formattedDate}`;
 };
 
 // Helper function to get numeric severity value
@@ -190,10 +193,9 @@ export function Newsfeed() {
             {groupedItemsArray.map(([dateString, items]) => (
                 <div key={dateString} className="space-y-3 mb-6 pb-4 last:border-b-0">
                     <h3 className="text-lg font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 pl-3 bg-blue-50 rounded-r-md shadow-sm mb-3">
-                        {formatDateWithDay(dateString)} 
+                        {formatDateWithDay(dateString)}
                         <span className="ml-2 text-blue-600">({items.length} alerts)</span>
                     </h3>
-                    
                     <div className="space-y-2">
                         {items.map((item: NewsItem) => {
                             const mappedSeverity = mapSeverity(item.severity);
@@ -235,4 +237,4 @@ export function Newsfeed() {
             ))}
         </div>
     );
-} 
+}
