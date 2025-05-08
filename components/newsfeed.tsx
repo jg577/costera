@@ -211,7 +211,7 @@ export function Newsfeed() {
                                                 <div className={`w-2.5 h-2.5 rounded-full ${severityColors[mappedSeverity]}`} />
                                                 <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
                                             </div>
-                                            <p className="text-sm text-gray-700 line-clamp-1">{item.description}</p>
+                                            <p className="text-sm text-gray-700 whitespace-normal break-words">{item.description}</p>
                                             <div className="flex items-center gap-3 mt-1.5">
                                                 <div className={`text-xs font-medium ${severityTextColors[mappedSeverity]} inline-block px-2.5 py-0.5 rounded-full bg-gray-100`}>
                                                     {mappedSeverity.charAt(0).toUpperCase() + mappedSeverity.slice(1)}
