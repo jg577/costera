@@ -132,6 +132,7 @@ const getSeverityValue = (severity: Severity | number): number => {
 export function Newsfeed() {
     const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showUrgentOnly, setShowUrgentOnly] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -190,51 +191,80 @@ export function Newsfeed() {
 
     return (
         <div className="space-y-4">
-            {groupedItemsArray.map(([dateString, items]) => (
-                <div key={dateString} className="space-y-3 mb-6 pb-4 last:border-b-0">
-                    <h3 className="text-lg font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 pl-3 bg-blue-50 rounded-r-md shadow-sm mb-3">
-                        {formatDateWithDay(dateString)}
-                        <span className="ml-2 text-blue-600">({items.length} alerts)</span>
-                    </h3>
-                    <div className="space-y-2">
-                        {items.map((item: NewsItem) => {
-                            const mappedSeverity = mapSeverity(item.severity);
-                            return (
-                                <div
-                                    key={item.id}
-                                    onClick={() => handleItemClick(item.description)}
-                                    className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer border-l-4 ${severityBorderColors[mappedSeverity]} transform hover:-translate-y-px`}
-                                >
-                                    <div className="p-3.5 flex flex-row items-center">
-                                        <div className="flex-grow">
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <div className={`w-2.5 h-2.5 rounded-full ${severityColors[mappedSeverity]}`} />
-                                                <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
-                                            </div>
-                                            <p className="text-sm text-gray-700 whitespace-normal break-words">{item.description}</p>
-                                            <div className="flex items-center gap-3 mt-1.5">
-                                                <div className={`text-xs font-medium ${severityTextColors[mappedSeverity]} inline-block px-2.5 py-0.5 rounded-full bg-gray-100`}>
-                                                    {mappedSeverity.charAt(0).toUpperCase() + mappedSeverity.slice(1)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {item.imageUrl && (
-                                            <div className="relative h-20 w-28 ml-4 rounded-md overflow-hidden flex-shrink-0">
-                                                <Image
-                                                    src={item.imageUrl}
-                                                    alt={item.title}
-                                                    fill
-                                                    className="object-cover hover:scale-105 transition-transform duration-300"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+            <div className="flex justify-end mb-4">
+                <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
+                    <button
+                        onClick={() => setShowUrgentOnly(false)}
+                        className={`px-4 py-2 text-sm font-medium ${!showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                        All Alerts
+                    </button>
+                    <button
+                        onClick={() => setShowUrgentOnly(true)}
+                        className={`px-4 py-2 text-sm font-medium ${showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                        Urgent Only
+                    </button>
                 </div>
-            ))}
+            </div>
+            
+            {groupedItemsArray.map(([dateString, items]) => {
+                // Filter items if urgent only is selected
+                const filteredItems = showUrgentOnly 
+                    ? items.filter(item => mapSeverity(item.severity) === "bad")
+                    : items;
+                
+                // Skip date group if it has no items after filtering
+                if (filteredItems.length === 0) return null;
+                
+                return (
+                    <div key={dateString} className="space-y-3 mb-6 pb-4 last:border-b-0">
+                        <h3 className="text-lg font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 pl-3 bg-blue-50 rounded-r-md shadow-sm mb-3">
+                            {formatDateWithDay(dateString)}
+                            <span className="ml-2 text-blue-600">({filteredItems.length} alerts)</span>
+                        </h3>
+                        <div className="space-y-2">
+                            {filteredItems.map((item: NewsItem) => {
+                                const mappedSeverity = mapSeverity(item.severity);
+                                const severityLabel = mappedSeverity === "bad" ? "Red" : 
+                                                    mappedSeverity === "good" ? "Green" : "Neutral";
+                                return (
+                            <div
+                                key={item.id}
+                                onClick={() => handleItemClick(item.description)}
+                                        className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer border-l-4 ${severityBorderColors[mappedSeverity]} transform hover:-translate-y-px`}
+                            >
+                                        <div className="p-3.5 flex flex-row items-center">
+                                            <div className="flex-grow">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <div className={`w-2.5 h-2.5 rounded-full ${severityColors[mappedSeverity]}`} />
+                                                    <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
+                                                </div>
+                                                <p className="text-sm text-gray-700 whitespace-normal break-words">{item.description}</p>
+                                                <div className="flex items-center gap-3 mt-1.5">
+                                                    <div className={`text-xs font-medium ${severityTextColors[mappedSeverity]} inline-block px-2.5 py-0.5 rounded-full bg-gray-100`}>
+                                                        {severityLabel}
+                                                    </div>
+                                    </div>
+                                    </div>
+                                    {item.imageUrl && (
+                                                <div className="relative h-20 w-28 ml-4 rounded-md overflow-hidden flex-shrink-0">
+                                            <Image
+                                                src={item.imageUrl}
+                                                alt={item.title}
+                                                fill
+                                                        className="object-cover hover:scale-105 transition-transform duration-300"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 }
