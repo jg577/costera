@@ -193,6 +193,7 @@ export function Newsfeed() {
     const [loading, setLoading] = useState(true);
     const [showUrgentOnly, setShowUrgentOnly] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<GroupedCategory | null>(null);
+    const [isMobileView, setIsMobileView] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -214,6 +215,20 @@ export function Newsfeed() {
         };
 
         fetchNews();
+        
+        // Check if we're on mobile initially
+        const checkIfMobile = () => {
+            setIsMobileView(window.innerWidth < 1024);
+        };
+        
+        // Initial check
+        checkIfMobile();
+        
+        // Listen for resize events
+        window.addEventListener('resize', checkIfMobile);
+        
+        // Clean up
+        return () => window.removeEventListener('resize', checkIfMobile);
     }, []);
 
     useEffect(() => {
@@ -238,6 +253,12 @@ export function Newsfeed() {
         // Set the input value in the URL state for chat
         router.push(`/?input=${encodeURIComponent(description)}`);
     };
+    
+    const closeModal = () => {
+        if (isMobileView) {
+            setSelectedCategory(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -258,9 +279,127 @@ export function Newsfeed() {
     // Convert to array of [dateString, items], sort by date (newest first)
     const groupedItemsArray = Array.from(groupedItems.entries())
         .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
+    
+    // Create the details panel content
+    const renderDetailsPanel = () => {
+        if (!selectedCategory) return null;
+        
+        return (
+            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 border border-gray-200 h-full overflow-y-auto">
+                <div>
+                    <div className="flex justify-between items-center mb-4 md:mb-6">
+                        <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                            {capitalizeTitle(selectedCategory.title)}
+                            {selectedCategory.items.length > 1 && 
+                                <span className="ml-2 text-gray-500 text-sm">
+                                    ({selectedCategory.items.length} items)
+                                </span>
+                            }
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>
+                                {selectedCategory.severity === "bad" ? "Red" : 
+                                 selectedCategory.severity === "good" ? "Green" : "Neutral"}
+                            </div>
+                            {isMobileView && (
+                                <button 
+                                    onClick={closeModal}
+                                    className="ml-2 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {selectedCategory.title.toLowerCase() === "pricing opportunity" ? (
+                        <div className="space-y-4 md:space-y-5">
+                            {/* Sort items by severity with bad/critical first */}
+                            {[...selectedCategory.items]
+                                .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
+                                .map((item) => (
+                                <div 
+                                    key={item.id} 
+                                    className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
+                                        mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
+                                    }`}
+                                >
+                                    <h3 className="font-medium mb-2 md:text-lg">{item.description.split(',')[0]}</h3>
+                                    <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{item.description}</div>
+                                    <div className="mt-2 md:mt-3 flex justify-end">
+                                        <button 
+                                            onClick={() => handleChatAction(item.description)}
+                                            className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                        >
+                                            Ask Luna
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : selectedCategory.items.length === 1 ? (
+                        // Single item view
+                        <div>
+                            {selectedCategory.items[0].imageUrl && (
+                                <div className="relative h-48 md:h-64 w-full mb-4 md:mb-6 rounded-md overflow-hidden">
+                                    <Image
+                                        src={selectedCategory.items[0].imageUrl}
+                                        alt={selectedCategory.items[0].title}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                            )}
+                            
+                            <div className="mb-4 md:mb-6">
+                                <p className="text-gray-700 md:text-lg whitespace-pre-line">{selectedCategory.items[0].description}</p>
+                            </div>
+                            
+                            <div className="flex justify-between items-center text-sm md:text-base text-gray-500 mt-6">
+                                <span>{formatDateWithDay(selectedCategory.items[0].date)}</span>
+                                <button 
+                                    onClick={() => handleChatAction(selectedCategory.items[0].description)}
+                                    className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                >
+                                    Ask Luna
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        // Multiple items view for non-pricing opportunity categories
+                        <div className="space-y-3 md:space-y-4">
+                            {/* Sort items by severity with bad/critical first */}
+                            {[...selectedCategory.items]
+                                .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
+                                .map((item) => (
+                                <div 
+                                    key={item.id} 
+                                    className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
+                                        mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
+                                    }`}
+                                >
+                                    <p className="text-gray-700 md:text-base">{item.description}</p>
+                                    <div className="mt-2 md:mt-3 flex justify-end">
+                                        <button 
+                                            onClick={() => handleChatAction(item.description)}
+                                            className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                        >
+                                            Ask Luna
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 max-w-screen-xl">
             <div className="flex justify-end mb-4">
                 <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
                     <button
@@ -278,9 +417,10 @@ export function Newsfeed() {
                 </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Desktop layout */}
+            <div className="hidden lg:grid lg:grid-cols-4 lg:gap-6">
                 {/* Left Column - Date Groups and Category Titles */}
-                <div className="md:col-span-1 overflow-y-auto h-[calc(100vh-200px)] pr-2">
+                <div className="lg:col-span-1 overflow-y-auto h-[calc(100vh-200px)] pr-2">
                     {groupedItemsArray.map(([dateString, items]) => {
                         // Group items by category
                         const categories = groupByCategory(items);
@@ -301,11 +441,6 @@ export function Newsfeed() {
                                 </h3>
                                 <div className="space-y-1.5">
                                     {filteredCategories.map((category) => {
-                                        const isSimilarTitle = (title: string) => {
-                                            return title.toLowerCase().includes(category.title) || 
-                                                   category.title.includes(title.toLowerCase());
-                                        };
-                                        
                                         const countText = category.title.toLowerCase() === "pricing opportunity" 
                                             ? `(${category.items.length})` 
                                             : "";
@@ -334,110 +469,73 @@ export function Newsfeed() {
                 </div>
                 
                 {/* Right Column - Detailed Content */}
-                <div className="md:col-span-2 bg-white rounded-lg shadow-sm p-4 border border-gray-200 h-[calc(100vh-200px)] overflow-y-auto">
+                <div className="lg:col-span-3 h-[calc(100vh-200px)]">
                     {selectedCategory ? (
-                        <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">
-                                    {capitalizeTitle(selectedCategory.title)}
-                                    {selectedCategory.items.length > 1 && 
-                                        <span className="ml-2 text-gray-500 text-sm">
-                                            ({selectedCategory.items.length} items)
-                                        </span>
-                                    }
-                                </h2>
-                                <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>
-                                    {selectedCategory.severity === "bad" ? "Red" : 
-                                     selectedCategory.severity === "good" ? "Green" : "Neutral"}
-                                </div>
-                            </div>
-                            
-                            {selectedCategory.title.toLowerCase() === "pricing opportunity" ? (
-                                <div className="space-y-4">
-                                    {/* Sort items by severity with bad/critical first */}
-                                    {[...selectedCategory.items]
-                                        .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
-                                        .map((item) => (
-                                        <div 
-                                            key={item.id} 
-                                            className={`border rounded-lg p-3 hover:shadow-sm transition-all ${
-                                                mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
-                                            }`}
-                                        >
-                                            <h3 className="font-medium mb-2">{item.description.split(',')[0]}</h3>
-                                            <div className="text-sm text-gray-700 whitespace-pre-line">{item.description}</div>
-                                            <div className="mt-2 flex justify-end">
-                                                <button 
-                                                    onClick={() => handleChatAction(item.description)}
-                                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                                                >
-                                                    Ask Luna
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : selectedCategory.items.length === 1 ? (
-                                // Single item view
-                                <div>
-                                    {selectedCategory.items[0].imageUrl && (
-                                        <div className="relative h-48 w-full mb-4 rounded-md overflow-hidden">
-                                            <Image
-                                                src={selectedCategory.items[0].imageUrl}
-                                                alt={selectedCategory.items[0].title}
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        </div>
-                                    )}
-                                    
-                                    <div className="mb-4">
-                                        <p className="text-gray-700 whitespace-pre-line">{selectedCategory.items[0].description}</p>
-                                    </div>
-                                    
-                                    <div className="flex justify-between items-center text-sm text-gray-500 mt-6">
-                                        <span>{formatDateWithDay(selectedCategory.items[0].date)}</span>
-                                        <button 
-                                            onClick={() => handleChatAction(selectedCategory.items[0].description)}
-                                            className="px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                                        >
-                                            Ask Luna
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                // Multiple items view for non-pricing opportunity categories
-                                <div className="space-y-3">
-                                    {/* Sort items by severity with bad/critical first */}
-                                    {[...selectedCategory.items]
-                                        .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
-                                        .map((item) => (
-                                        <div 
-                                            key={item.id} 
-                                            className={`border rounded-lg p-3 hover:shadow-sm transition-all ${
-                                                mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
-                                            }`}
-                                        >
-                                            <p className="text-gray-700">{item.description}</p>
-                                            <div className="mt-2 flex justify-end">
-                                                <button 
-                                                    onClick={() => handleChatAction(item.description)}
-                                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                                                >
-                                                    Ask Luna
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        renderDetailsPanel()
                     ) : (
-                        <div className="flex justify-center items-center h-full text-gray-500">
+                        <div className="flex justify-center items-center h-full text-gray-500 md:text-lg bg-white rounded-lg shadow-sm p-4 md:p-6 border border-gray-200">
                             Select an item from the list to view details
                         </div>
                     )}
                 </div>
+            </div>
+            
+            {/* Mobile layout */}
+            <div className="lg:hidden">
+                <div className="bg-white rounded-lg shadow-sm overflow-y-auto h-[calc(100vh-200px)]">
+                    {groupedItemsArray.map(([dateString, items]) => {
+                        // Group items by category
+                        const categories = groupByCategory(items);
+                        
+                        // Filter categories if urgent only is selected
+                        const filteredCategories = showUrgentOnly 
+                            ? categories.filter(category => category.severity === "bad")
+                            : categories;
+                        
+                        // Skip date group if it has no categories after filtering
+                        if (filteredCategories.length === 0) return null;
+                        
+                        return (
+                            <div key={dateString} className="mb-4 px-3 pt-2">
+                                <h3 className="text-base font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-2">
+                                    {formatDateWithDay(dateString)}
+                                    <span className="ml-2 text-gray-500 text-sm">({filteredCategories.length})</span>
+                                </h3>
+                                <div className="space-y-1.5">
+                                    {filteredCategories.map((category) => {
+                                        const countText = category.title.toLowerCase() === "pricing opportunity" 
+                                            ? `(${category.items.length})` 
+                                            : "";
+                                            
+                                        return (
+                                            <div
+                                                key={category.id}
+                                                onClick={() => handleCategoryClick(category)}
+                                                className={`p-2 rounded-md cursor-pointer transition-all duration-200 border-l-3 
+                                                    hover:bg-gray-100 border-transparent
+                                                    ${severityBorderColors[category.severity]}`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-2.5 h-2.5 rounded-full ${severityColors[category.severity]}`} />
+                                                    <h4 className="text-sm font-medium truncate">{capitalizeTitle(category.title)} <span className="text-gray-500">{countText}</span></h4>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                
+                {/* Mobile Modal */}
+                {isMobileView && selectedCategory && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                            {renderDetailsPanel()}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
