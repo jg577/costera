@@ -220,56 +220,55 @@ export const SuggestedQueries = ({
   ];
 
   return (
-    <motion.div
-      key="suggestions"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      layout
-      exit={{ opacity: 0 }}
-      className="h-full overflow-y-auto pt-4"
-    >
-      <div className="space-y-4 mb-6">
-        <p className="text-sm font-medium text-muted-foreground mt-2 mb-4">
-          OR select one of these questions below:
-        </p>
+    <div className="space-y-3 md:space-y-6">
+      <h2 className="font-semibold text-lg md:text-2xl text-gray-900 mb-1 md:mb-2">Suggested Queries</h2>
+      <p className="text-gray-500 text-sm md:text-base mb-3 md:mb-6">
+        Click on any of these queries to get instant analytics
+      </p>
 
-        {queryCategories.map((category, categoryIndex) => (
-          <div key={categoryIndex} className="container-box border rounded-lg">
+      <div className="space-y-4 md:space-y-6">
+        {queryCategories.map((category) => (
+          <div key={category.title} className="rounded-lg border border-gray-200">
             <button
-              className="w-full flex justify-between items-center p-3 font-medium text-left"
               onClick={() => toggleCategory(category.title.toLowerCase())}
+              className="w-full flex justify-between items-center p-3 md:p-4 hover:bg-blue-50 bg-white rounded-lg text-left transition-colors"
             >
-              <span>{category.title}</span>
+              <h3 className="text-base md:text-xl font-semibold text-gray-900">{category.title}</h3>
               {expandedCategories[category.title.toLowerCase()] ? (
-                <ChevronUpIcon className="h-4 w-4" />
+                <ChevronUpIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-500" />
               ) : (
-                <ChevronDownIcon className="h-4 w-4" />
+                <ChevronDownIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-500" />
               )}
             </button>
 
             {expandedCategories[category.title.toLowerCase()] && (
-              <div className="p-3 pt-0 border-t">
-                <div className="flex flex-col space-y-2">
-                  {category.queries.map((suggestion, index) => (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="px-3 pb-3 md:px-4 md:pb-4"
+              >
+                <div className="space-y-2 md:space-y-3">
+                  {category.queries.map((query, idx) => (
                     <Button
-                      key={index}
-                      className="text-sm w-full justify-start h-auto py-2 px-3 border hover:bg-primary/10"
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleSuggestionClick(suggestion.desktop, suggestion.sql)}
+                      key={idx}
+                      variant="ghost"
+                      onClick={() => handleSuggestionClick(
+                        window.innerWidth < 640 ? query.mobile : query.desktop,
+                        query.sql
+                      )}
+                      className="w-full justify-start text-left font-normal bg-blue-50 hover:bg-blue-100 border border-gray-200 text-gray-700 rounded-md p-3 md:p-4 text-sm md:text-lg h-auto"
                     >
-                      <span className="sm:hidden">{suggestion.mobile}</span>
-                      <span className="hidden sm:inline">
-                        {suggestion.desktop}
-                      </span>
+                      {window.innerWidth < 640 ? query.mobile : query.desktop}
                     </Button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 };

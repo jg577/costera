@@ -1,6 +1,7 @@
 import { Search as SearchIcon } from "lucide-react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 interface SearchProps {
   handleClear: () => void;
@@ -17,6 +18,21 @@ export function Search({
   setInputValue,
   submitted
 }: SearchProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      
+      // Set height to scrollHeight + a little extra for padding
+      const newHeight = Math.max(textarea.scrollHeight, 40);
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, [inputValue]);
+
   return (
     <form
       onSubmit={async (e) => {
@@ -25,33 +41,44 @@ export function Search({
       }}
       className={submitted ? "w-full" : "mb-6"}
     >
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-        <div className="relative flex-grow">
-          <div className="container-box flex items-center">
-            <Input
-              type="text"
+      <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="relative flex-grow w-full">
+          <div className="search-input-container !border !border-blue-300 !rounded-md !bg-blue-50 relative">
+            <textarea
+              ref={textareaRef}
               placeholder={submitted ? "Ask another question about your data..." : "Ask about your business operations or performance..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="friendly-input border-0 shadow-none bg-transparent px-0 focus:ring-0 h-9"
+              className="friendly-input w-full !border-0 !shadow-none !bg-transparent px-3 py-2 !focus:ring-blue-300 text-sm md:text-lg resize-none"
+              rows={1}
+              style={{ paddingRight: '2.5rem' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
             />
+            <div className="absolute right-3 top-3 text-blue-500">
+              <SearchIcon className="h-4 w-4 md:h-5 md:w-5" />
+            </div>
           </div>
-          <SearchIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         </div>
-        <div className="flex sm:flex-row items-center justify-center gap-2">
+        
+        <div className="flex sm:flex-row items-center self-start justify-center gap-2 flex-shrink-0">
           {submitted ? (
             <div className="flex gap-2 w-full sm:w-auto">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClear}
-                className="friendly-button w-full sm:w-auto"
+                className="friendly-button w-full sm:w-auto text-sm md:text-lg h-10 md:h-12 !border-blue-300 !text-blue-700 !bg-blue-50 hover:!bg-blue-100"
               >
                 Clear All
               </Button>
               <Button
                 type="submit"
-                className="friendly-button primary-button w-full sm:w-auto"
+                className="friendly-button w-full sm:w-auto text-sm md:text-lg h-10 md:h-12 !bg-blue-500 hover:!bg-blue-600 !text-white"
               >
                 Search
               </Button>
@@ -59,7 +86,7 @@ export function Search({
           ) : (
             <Button
               type="submit"
-              className="friendly-button primary-button w-full sm:w-auto"
+              className="friendly-button w-full sm:w-auto text-sm md:text-lg h-10 md:h-12 !bg-blue-500 hover:!bg-blue-600 !text-white"
             >
               Search
             </Button>

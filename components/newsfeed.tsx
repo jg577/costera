@@ -503,7 +503,7 @@ export function Newsfeed() {
     // DESKTOP VIEW
     return (
         <div className="w-full flex flex-col p-0">
-            <div className="flex justify-end mb-4 pr-4">
+            <div className="flex justify-end mb-6">
                 <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
                     <button
                         onClick={() => setShowUrgentOnly(false)}
@@ -520,9 +520,9 @@ export function Newsfeed() {
                 </div>
             </div>
             
-            <div className="flex h-[calc(100vh-120px)]">
-                {/* Left sidebar - flush with left edge of screen */}
-                <div className="w-96 xl:w-[420px] 2xl:w-[480px] flex-shrink-0 overflow-y-auto pb-4 pl-3 md:pl-4 lg:pl-6">
+            <div className="flex h-[calc(100vh-180px)]">
+                {/* Left sidebar with proper padding */}
+                <div className="w-80 xl:w-[380px] 2xl:w-[440px] flex-shrink-0 overflow-y-auto pb-6 pr-8">
                     {groupedItemsArray.map(([dateString, items]) => {
                         // Group items by category
                         const categories = groupByCategory(items);
@@ -537,11 +537,11 @@ export function Newsfeed() {
                         
                         return (
                             <div key={dateString} className="mb-5">
-                                <h3 className="text-base font-bold text-gray-800 py-2 pl-3 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-3">
+                                <h3 className="text-base font-bold text-gray-800 py-2 px-4 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-4">
                                     {formatDateWithDay(dateString)}
                                     <span className="ml-2 text-gray-500 text-sm">({filteredCategories.length})</span>
                                 </h3>
-                                <div className="space-y-2 pr-3">
+                                <div className="space-y-3">
                                     {filteredCategories.map((category) => {
                                         // Always show the count for all categories
                                         const countText = `(${category.items.length})`;
@@ -552,7 +552,7 @@ export function Newsfeed() {
                                             <div
                                                 key={category.id}
                                                 onClick={() => handleCategoryClick(category)}
-                                                className={`p-3 rounded-md cursor-pointer transition-all duration-200 border-l-3 ${
+                                                className={`p-3.5 rounded-md cursor-pointer transition-all duration-200 border-l-3 ${
                                                     selectedCategory?.id === category.id 
                                                         ? 'bg-blue-100 border-blue-500' 
                                                         : 'hover:bg-gray-100 border-transparent'
@@ -576,11 +576,11 @@ export function Newsfeed() {
                     })}
                 </div>
                 
-                {/* Main content area - expanded with minimum width */}
-                <div className="flex-grow min-w-[500px] xl:min-w-[600px] 2xl:min-w-[700px] bg-white rounded-lg shadow-sm p-6 border border-gray-200 overflow-y-auto ml-6">
+                {/* Main content area with proper padding */}
+                <div className="flex-grow min-w-[500px] xl:min-w-[600px] 2xl:min-w-[700px] bg-white rounded-lg shadow-sm p-8 border border-gray-200 overflow-y-auto ml-8 mr-0">
                     {selectedCategory ? (
                         <div>
-                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                            <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
                                 <h2 className="text-2xl font-bold text-gray-900">
                                     {capitalizeTitle(selectedCategory.title)}
                                     {selectedCategory.items.length > 1 && 

@@ -48,59 +48,26 @@
     --chart-8: 50 95% 50%;
     /* Yellow/Gold */
   }
-
-  .dark {
-    --background: 215 30% 10%;
-    --foreground: 215 10% 90%;
-    --card: 215 30% 12%;
-    --card-foreground: 215 10% 90%;
-    --popover: 215 30% 12%;
-    --popover-foreground: 215 10% 90%;
-    --primary: 215 50% 50%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 215 20% 18%;
-    --secondary-foreground: 215 10% 90%;
-    --muted: 215 20% 18%;
-    --muted-foreground: 215 10% 60%;
-    --accent: 215 30% 40%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 60% 40%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 215 20% 20%;
-    --input: 215 20% 20%;
-    --ring: 215 50% 50%;
-    --radius: 0.5rem;
-    /* Distinctly different color palette for charts - Dark theme */
-    --chart-1: 215 80% 60%;
-    /* Bright blue */
-    --chart-2: 25 95% 60%;
-    /* Bright orange */
-    --chart-3: 145 70% 50%;
-    /* Bright green */
-    --chart-4: 325 80% 60%;
-    /* Bright pink */
-    --chart-5: 260 80% 65%;
-    /* Bright purple */
-    --chart-6: 190 95% 55%;
-    /* Bright cyan */
-    --chart-7: 0 90% 65%;
-    /* Bright red */
-    --chart-8: 50 100% 60%;
-    /* Bright yellow/gold */
-  }
 }
 
 body {
   @apply bg-background text-foreground;
 }
 
+/* Search textarea styles */
+textarea.friendly-input {
+  @apply block w-full;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
 /* Friendly UI elements with a mix of professional and accessible design */
 .surface {
-  @apply bg-white/90 dark:bg-black/50 border border-border shadow-sm rounded-md;
+  @apply bg-white/90 border border-border shadow-sm rounded-md;
 }
 
 .container-box {
-  @apply text-sm bg-secondary/50 dark:bg-secondary/30 rounded-md p-4 border border-border;
+  @apply text-sm bg-secondary/50 rounded-md p-4 border border-border;
 }
 
 .friendly-input {
@@ -108,7 +75,7 @@ body {
 }
 
 .query-box {
-  @apply font-mono text-sm bg-secondary/50 dark:bg-secondary/30 rounded-md p-4 border border-border;
+  @apply font-mono text-sm bg-secondary/50 rounded-md p-4 border border-border;
 }
 
 .friendly-button {
@@ -138,11 +105,11 @@ body {
 
 /* Code-inspired UI elements */
 .code-surface {
-  @apply bg-white/80 dark:bg-black/50 border border-border shadow-sm;
+  @apply bg-white/80 border border-border shadow-sm;
 }
 
 .code-container {
-  @apply font-mono text-sm bg-secondary/50 dark:bg-secondary/30 rounded-md p-4 border border-border;
+  @apply font-mono text-sm bg-secondary/50 rounded-md p-4 border border-border;
 }
 
 .terminal-input {
@@ -164,7 +131,7 @@ body {
 
 /* Glassmorphism effects */
 .glassmorphism {
-  @apply bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/10;
+  @apply bg-white/10 backdrop-blur-md border border-white/20;
 }
 
 /* Glow effects */

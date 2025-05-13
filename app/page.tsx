@@ -639,7 +639,7 @@ export default function Page() {
         <SearchParamsHandler setInputValue={setInputValue} />
       </Suspense>
       
-      <div className="w-full max-w-4xl min-h-dvh sm:min-h-0 flex flex-col">
+      <div className="w-full max-w-6xl min-h-dvh sm:min-h-0 flex flex-col">
         <motion.div
           className="surface bg-card rounded-md flex-grow flex flex-col"
           initial={{ opacity: 0 }}

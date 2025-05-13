@@ -16,7 +16,7 @@ export function QueryWithTooltips({
   const segments = segmentQuery(query, queryExplanations);
 
   return (
-    <div className="code-text text-sm bg-secondary/30 dark:bg-black/20 p-3 rounded-md overflow-x-auto border border-border">
+    <div className="code-text text-sm bg-secondary/30 p-3 rounded-md overflow-x-auto border border-border">
       {segments.map((segment, index) => (
         <span key={index}>
           {segment.explanation ? (
