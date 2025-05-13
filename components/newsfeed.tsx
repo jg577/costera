@@ -231,6 +231,32 @@ export function Newsfeed() {
         return () => window.removeEventListener('resize', checkIfMobile);
     }, []);
 
+    // Effect to select the first item in desktop view
+    useEffect(() => {
+        if (!loading && !isMobileView && newsItems.length > 0 && !selectedCategory) {
+            // Get sorted items and categories
+            const sortedItems = [...newsItems].sort((a, b) => 
+                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+            const groupedItems = groupByDate(sortedItems);
+            const groupedItemsArray = Array.from(groupedItems.entries())
+                .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
+            
+            // Select first category from first date group if available
+            if (groupedItemsArray.length > 0) {
+                const [firstDateString, firstDateItems] = groupedItemsArray[0];
+                const categories = groupByCategory(firstDateItems);
+                const filteredCategories = showUrgentOnly 
+                    ? categories.filter(category => category.severity === "bad")
+                    : categories;
+                
+                if (filteredCategories.length > 0) {
+                    setSelectedCategory(filteredCategories[0]);
+                }
+            }
+        }
+    }, [loading, isMobileView, newsItems, showUrgentOnly]);
+
     const handleCategoryClick = (category: GroupedCategory) => {
         setSelectedCategory(category);
     };
@@ -496,7 +522,7 @@ export function Newsfeed() {
             
             <div className="flex h-[calc(100vh-120px)]">
                 {/* Left sidebar - flush with left edge of screen */}
-                <div className="w-96 xl:w-[420px] 2xl:w-[480px] flex-shrink-0 overflow-y-auto pb-4 pl-2">
+                <div className="w-96 xl:w-[420px] 2xl:w-[480px] flex-shrink-0 overflow-y-auto pb-4 pl-3 md:pl-4 lg:pl-6">
                     {groupedItemsArray.map(([dateString, items]) => {
                         // Group items by category
                         const categories = groupByCategory(items);
