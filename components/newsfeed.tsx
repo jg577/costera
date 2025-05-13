@@ -444,9 +444,9 @@ export function Newsfeed() {
     // MOBILE VIEW
     if (isMobileView) {
         return (
-            <div className="px-4">
+            <div className="px-0">
                 {/* Filter buttons */}
-                <div className="flex justify-end mb-2">
+                <div className="flex justify-end mb-2 px-2">
                     <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
                         <button
                             onClick={() => setShowUrgentOnly(false)}
@@ -483,7 +483,7 @@ export function Newsfeed() {
                                     {formatDateWithDay(dateString)}
                                     <span className="ml-2 text-gray-500 text-xs">({filteredCategories.length})</span>
                                 </h3>
-                                <div className="space-y-1">
+                                <div className="space-y-1 px-1">
                                     {filteredCategories.map((category) => {
                                         // Always show the count for all categories
                                         const countText = `(${category.items.length})`;
@@ -496,7 +496,7 @@ export function Newsfeed() {
                                                     hover:bg-gray-100 border-transparent
                                                     ${severityBorderColors[category.severity]}`}
                                             >
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 pl-1">
                                                     <div className={`w-2 h-2 rounded-full ${severityColors[category.severity]}`} />
                                                     <h4 className="text-sm font-medium truncate">{capitalizeTitle(category.title)} <span className="text-gray-500">{countText}</span></h4>
                                                 </div>
