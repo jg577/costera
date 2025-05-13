@@ -284,6 +284,9 @@ export function Newsfeed() {
     const renderDetailsPanel = () => {
         if (!selectedCategory) return null;
         
+        // Check if this is a Clock-in category
+        const isClockIn = selectedCategory.title.toLowerCase() === "clock-in";
+        
         return (
             <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 border border-gray-200 h-full overflow-y-auto">
                 <div>
@@ -319,25 +322,35 @@ export function Newsfeed() {
                             {/* Sort items by severity with bad/critical first */}
                             {[...selectedCategory.items]
                                 .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
-                                .map((item) => (
-                                <div 
-                                    key={item.id} 
-                                    className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
-                                        mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
-                                    }`}
-                                >
-                                    <h3 className="font-medium mb-2 md:text-lg">{item.description.split(',')[0]}</h3>
-                                    <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{item.description}</div>
-                                    <div className="mt-2 md:mt-3 flex justify-end">
-                                        <button 
-                                            onClick={() => handleChatAction(item.description)}
-                                            className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                .map((item) => {
+                                    // Extract item name from first part of description
+                                    const descriptionParts = item.description.split(',');
+                                    const itemName = descriptionParts[0].replace('Item:', '').trim();
+                                    
+                                    // Skip the first part that's used as the header
+                                    const restOfDescription = descriptionParts.slice(1).join(',');
+                                    
+                                    return (
+                                        <div 
+                                            key={item.id} 
+                                            className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
+                                                mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
+                                            }`}
                                         >
-                                            Ask Luna
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                            <h3 className="font-medium mb-2 md:text-lg">{itemName}</h3>
+                                            <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{restOfDescription}</div>
+                                            <div className="mt-2 md:mt-3 flex justify-end">
+                                                <button 
+                                                    onClick={() => handleChatAction(item.description)}
+                                                    className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                                >
+                                                    Ask Luna
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            }
                         </div>
                     ) : selectedCategory.items.length === 1 ? (
                         // Single item view
@@ -354,7 +367,9 @@ export function Newsfeed() {
                             )}
                             
                             <div className="mb-4 md:mb-6">
-                                <p className="text-gray-700 md:text-lg whitespace-pre-line">{selectedCategory.items[0].description}</p>
+                                <p className={`text-gray-700 ${isClockIn ? 'text-base md:text-xl' : 'md:text-lg'} whitespace-pre-line`}>
+                                    {selectedCategory.items[0].description}
+                                </p>
                             </div>
                             
                             <div className="flex justify-between items-center text-sm md:text-base text-gray-500 mt-6">
@@ -380,7 +395,7 @@ export function Newsfeed() {
                                         mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
                                     }`}
                                 >
-                                    <p className="text-gray-700 md:text-base">{item.description}</p>
+                                    <p className={`text-gray-700 ${isClockIn ? 'text-base md:text-xl' : 'md:text-base'}`}>{item.description}</p>
                                     <div className="mt-2 md:mt-3 flex justify-end">
                                         <button 
                                             onClick={() => handleChatAction(item.description)}
@@ -399,18 +414,18 @@ export function Newsfeed() {
     };
 
     return (
-        <div className="container mx-auto px-4 max-w-screen-xl">
-            <div className="flex justify-end mb-4">
+        <div className="container mx-auto px-4 max-w-screen-xl 2xl:max-w-screen-2xl">
+            <div className="flex justify-end mb-2 md:mb-4">
                 <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
                     <button
                         onClick={() => setShowUrgentOnly(false)}
-                        className={`px-4 py-2 text-sm font-medium ${!showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium ${!showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                         All Alerts
                     </button>
                     <button
                         onClick={() => setShowUrgentOnly(true)}
-                        className={`px-4 py-2 text-sm font-medium ${showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium ${showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                         Urgent Only
                     </button>
@@ -418,9 +433,9 @@ export function Newsfeed() {
             </div>
             
             {/* Desktop layout */}
-            <div className="hidden lg:grid lg:grid-cols-4 lg:gap-6">
+            <div className="hidden lg:grid lg:grid-cols-12 lg:gap-6">
                 {/* Left Column - Date Groups and Category Titles */}
-                <div className="lg:col-span-1 overflow-y-auto h-[calc(100vh-200px)] pr-2">
+                <div className="lg:col-span-4 overflow-y-auto h-[calc(100vh-200px)] pr-2">
                     {groupedItemsArray.map(([dateString, items]) => {
                         // Group items by category
                         const categories = groupByCategory(items);
@@ -469,7 +484,7 @@ export function Newsfeed() {
                 </div>
                 
                 {/* Right Column - Detailed Content */}
-                <div className="lg:col-span-3 h-[calc(100vh-200px)]">
+                <div className="lg:col-span-8 h-[calc(100vh-200px)]">
                     {selectedCategory ? (
                         renderDetailsPanel()
                     ) : (
@@ -482,7 +497,7 @@ export function Newsfeed() {
             
             {/* Mobile layout */}
             <div className="lg:hidden">
-                <div className="bg-white rounded-lg shadow-sm overflow-y-auto h-[calc(100vh-200px)]">
+                <div className="bg-white rounded-lg shadow-sm overflow-y-auto h-[calc(100vh-120px)]">
                     {groupedItemsArray.map(([dateString, items]) => {
                         // Group items by category
                         const categories = groupByCategory(items);
@@ -496,28 +511,33 @@ export function Newsfeed() {
                         if (filteredCategories.length === 0) return null;
                         
                         return (
-                            <div key={dateString} className="mb-4 px-3 pt-2">
-                                <h3 className="text-base font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-2">
+                            <div key={dateString} className="mb-3 px-3 pt-2">
+                                <h3 className="text-sm font-bold text-gray-800 py-1.5 px-3 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-2">
                                     {formatDateWithDay(dateString)}
-                                    <span className="ml-2 text-gray-500 text-sm">({filteredCategories.length})</span>
+                                    <span className="ml-2 text-gray-500 text-xs">({filteredCategories.length})</span>
                                 </h3>
-                                <div className="space-y-1.5">
+                                <div className="space-y-1">
                                     {filteredCategories.map((category) => {
                                         const countText = category.title.toLowerCase() === "pricing opportunity" 
                                             ? `(${category.items.length})` 
                                             : "";
-                                            
+                                        
+                                        // Adjust text size for different category types
+                                        const textSize = category.title.toLowerCase() === "clock-in" 
+                                            ? "text-xs" 
+                                            : "text-sm";
+                                        
                                         return (
                                             <div
                                                 key={category.id}
                                                 onClick={() => handleCategoryClick(category)}
-                                                className={`p-2 rounded-md cursor-pointer transition-all duration-200 border-l-3 
+                                                className={`p-1.5 rounded-md cursor-pointer transition-all duration-200 border-l-3 
                                                     hover:bg-gray-100 border-transparent
                                                     ${severityBorderColors[category.severity]}`}
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-2.5 h-2.5 rounded-full ${severityColors[category.severity]}`} />
-                                                    <h4 className="text-sm font-medium truncate">{capitalizeTitle(category.title)} <span className="text-gray-500">{countText}</span></h4>
+                                                    <div className={`w-2 h-2 rounded-full ${severityColors[category.severity]}`} />
+                                                    <h4 className={`${textSize} font-medium truncate`}>{capitalizeTitle(category.title)} <span className="text-gray-500">{countText}</span></h4>
                                                 </div>
                                             </div>
                                         );
