@@ -129,10 +129,70 @@ const getSeverityValue = (severity: Severity | number): number => {
     }
 };
 
+// Function to capitalize the first letter of each word
+const capitalizeTitle = (title: string): string => {
+    return title.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+};
+
+// Group items by title category
+interface GroupedCategory {
+    title: string;
+    items: NewsItem[];
+    severity: Severity;
+    date: string;
+    id: string;
+}
+
+// Function to group items by category (title)
+const groupByCategory = (items: NewsItem[]): GroupedCategory[] => {
+    const groupedByTitle = new Map<string, NewsItem[]>();
+    
+    // Group items by title
+    items.forEach(item => {
+        const title = item.title.toLowerCase();
+        if (!groupedByTitle.has(title)) {
+            groupedByTitle.set(title, []);
+        }
+        groupedByTitle.get(title)?.push(item);
+    });
+    
+    // Convert to array of grouped categories
+    const result: GroupedCategory[] = [];
+    groupedByTitle.forEach((items, title) => {
+        // Get the worst severity among items
+        const worstSeverity = items.reduce((worst, item) => {
+            const currentSeverity = getSeverityValue(item.severity);
+            return currentSeverity < worst ? currentSeverity : worst;
+        }, 1);
+        
+        // Create a group for this category
+        result.push({
+            title: title,
+            items: items,
+            severity: mapSeverity(worstSeverity),
+            date: items[0].date,
+            id: `category-${title}-${items[0].date}` // Generate a unique ID for the category
+        });
+    });
+    
+    // Sort categories by severity (bad first, then neutral, then good)
+    result.sort((a, b) => {
+        // Convert severity to numeric value for sorting
+        const severityValueA = getSeverityValue(a.severity);
+        const severityValueB = getSeverityValue(b.severity);
+        return severityValueA - severityValueB;
+    });
+    
+    return result;
+};
+
 export function Newsfeed() {
     const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<GroupedCategory | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -156,8 +216,26 @@ export function Newsfeed() {
         fetchNews();
     }, []);
 
-    const handleItemClick = (description: string) => {
-        // Set the input value in the URL state
+    useEffect(() => {
+        // Set the first category as selected by default if available
+        if (newsItems.length > 0) {
+            const groupedByDate = groupByDate(newsItems);
+            const firstDateItems = groupedByDate.values().next().value;
+            if (firstDateItems && firstDateItems.length > 0) {
+                const categories = groupByCategory(firstDateItems);
+                if (categories.length > 0) {
+                    setSelectedCategory(categories[0]);
+                }
+            }
+        }
+    }, [newsItems]);
+
+    const handleCategoryClick = (category: GroupedCategory) => {
+        setSelectedCategory(category);
+    };
+
+    const handleChatAction = (description: string) => {
+        // Set the input value in the URL state for chat
         router.push(`/?input=${encodeURIComponent(description)}`);
     };
 
@@ -176,21 +254,13 @@ export function Newsfeed() {
     
     // Group items by date
     const groupedItems = groupByDate(sortedItems);
-    console.log(groupedItems);
     
-    // Convert to array of [dateString, items], sort by date (newest first), and sort items by severity
+    // Convert to array of [dateString, items], sort by date (newest first)
     const groupedItemsArray = Array.from(groupedItems.entries())
-        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
-        .map(([date, items]) => {
-            // Sort items by severity (from most severe to least severe)
-            const sortedByPriority = [...items].sort((a, b) => 
-                getSeverityValue(a.severity) - getSeverityValue(b.severity)
-            );
-            return [date, sortedByPriority] as [string, NewsItem[]];
-        });
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
 
     return (
-        <div className="space-y-4">
+        <div className="container mx-auto">
             <div className="flex justify-end mb-4">
                 <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
                     <button
@@ -208,63 +278,167 @@ export function Newsfeed() {
                 </div>
             </div>
             
-            {groupedItemsArray.map(([dateString, items]) => {
-                // Filter items if urgent only is selected
-                const filteredItems = showUrgentOnly 
-                    ? items.filter(item => mapSeverity(item.severity) === "bad")
-                    : items;
-                
-                // Skip date group if it has no items after filtering
-                if (filteredItems.length === 0) return null;
-                
-                return (
-                    <div key={dateString} className="space-y-3 mb-6 pb-4 last:border-b-0">
-                        <h3 className="text-lg font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 pl-3 bg-blue-50 rounded-r-md shadow-sm mb-3">
-                            {formatDateWithDay(dateString)}
-                            <span className="ml-2 text-blue-600">({filteredItems.length} alerts)</span>
-                        </h3>
-                        <div className="space-y-2">
-                            {filteredItems.map((item: NewsItem) => {
-                                const mappedSeverity = mapSeverity(item.severity);
-                                const severityLabel = mappedSeverity === "bad" ? "Red" : 
-                                                    mappedSeverity === "good" ? "Green" : "Neutral";
-                                return (
-                            <div
-                                key={item.id}
-                                onClick={() => handleItemClick(item.description)}
-                                        className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer border-l-4 ${severityBorderColors[mappedSeverity]} transform hover:-translate-y-px`}
-                            >
-                                        <div className="p-3.5 flex flex-row items-center">
-                                            <div className="flex-grow">
-                                                <div className="flex items-center gap-2 mb-1.5">
-                                                    <div className={`w-2.5 h-2.5 rounded-full ${severityColors[mappedSeverity]}`} />
-                                                    <h2 className="text-base font-semibold text-gray-900">{item.title}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Left Column - Date Groups and Category Titles */}
+                <div className="md:col-span-1 overflow-y-auto h-[calc(100vh-200px)] pr-2">
+                    {groupedItemsArray.map(([dateString, items]) => {
+                        // Group items by category
+                        const categories = groupByCategory(items);
+                        
+                        // Filter categories if urgent only is selected
+                        const filteredCategories = showUrgentOnly 
+                            ? categories.filter(category => category.severity === "bad")
+                            : categories;
+                        
+                        // Skip date group if it has no categories after filtering
+                        if (filteredCategories.length === 0) return null;
+                        
+                        return (
+                            <div key={dateString} className="mb-4">
+                                <h3 className="text-base font-bold text-gray-800 py-2 px-3 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-2">
+                                    {formatDateWithDay(dateString)}
+                                    <span className="ml-2 text-gray-500 text-sm">({filteredCategories.length})</span>
+                                </h3>
+                                <div className="space-y-1.5">
+                                    {filteredCategories.map((category) => {
+                                        const isSimilarTitle = (title: string) => {
+                                            return title.toLowerCase().includes(category.title) || 
+                                                   category.title.includes(title.toLowerCase());
+                                        };
+                                        
+                                        const countText = category.title.toLowerCase() === "pricing opportunity" 
+                                            ? `(${category.items.length})` 
+                                            : "";
+                                            
+                                        return (
+                                            <div
+                                                key={category.id}
+                                                onClick={() => handleCategoryClick(category)}
+                                                className={`p-2 rounded-md cursor-pointer transition-all duration-200 border-l-3 ${
+                                                    selectedCategory?.id === category.id 
+                                                        ? 'bg-blue-100 border-blue-500' 
+                                                        : 'hover:bg-gray-100 border-transparent'
+                                                } ${severityBorderColors[category.severity]}`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-2.5 h-2.5 rounded-full ${severityColors[category.severity]}`} />
+                                                    <h4 className="text-sm font-medium truncate">{capitalizeTitle(category.title)} <span className="text-gray-500">{countText}</span></h4>
                                                 </div>
-                                                <p className="text-sm text-gray-700 whitespace-normal break-words">{item.description}</p>
-                                                <div className="flex items-center gap-3 mt-1.5">
-                                                    <div className={`text-xs font-medium ${severityTextColors[mappedSeverity]} inline-block px-2.5 py-0.5 rounded-full bg-gray-100`}>
-                                                        {severityLabel}
-                                                    </div>
-                                    </div>
-                                    </div>
-                                    {item.imageUrl && (
-                                                <div className="relative h-20 w-28 ml-4 rounded-md overflow-hidden flex-shrink-0">
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                
+                {/* Right Column - Detailed Content */}
+                <div className="md:col-span-2 bg-white rounded-lg shadow-sm p-4 border border-gray-200 h-[calc(100vh-200px)] overflow-y-auto">
+                    {selectedCategory ? (
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    {capitalizeTitle(selectedCategory.title)}
+                                    {selectedCategory.items.length > 1 && 
+                                        <span className="ml-2 text-gray-500 text-sm">
+                                            ({selectedCategory.items.length} items)
+                                        </span>
+                                    }
+                                </h2>
+                                <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>
+                                    {selectedCategory.severity === "bad" ? "Red" : 
+                                     selectedCategory.severity === "good" ? "Green" : "Neutral"}
+                                </div>
+                            </div>
+                            
+                            {selectedCategory.title.toLowerCase() === "pricing opportunity" ? (
+                                <div className="space-y-4">
+                                    {/* Sort items by severity with bad/critical first */}
+                                    {[...selectedCategory.items]
+                                        .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
+                                        .map((item) => (
+                                        <div 
+                                            key={item.id} 
+                                            className={`border rounded-lg p-3 hover:shadow-sm transition-all ${
+                                                mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
+                                            }`}
+                                        >
+                                            <h3 className="font-medium mb-2">{item.description.split(',')[0]}</h3>
+                                            <div className="text-sm text-gray-700 whitespace-pre-line">{item.description}</div>
+                                            <div className="mt-2 flex justify-end">
+                                                <button 
+                                                    onClick={() => handleChatAction(item.description)}
+                                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                                >
+                                                    Ask Luna
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : selectedCategory.items.length === 1 ? (
+                                // Single item view
+                                <div>
+                                    {selectedCategory.items[0].imageUrl && (
+                                        <div className="relative h-48 w-full mb-4 rounded-md overflow-hidden">
                                             <Image
-                                                src={item.imageUrl}
-                                                alt={item.title}
+                                                src={selectedCategory.items[0].imageUrl}
+                                                alt={selectedCategory.items[0].title}
                                                 fill
-                                                        className="object-cover hover:scale-105 transition-transform duration-300"
+                                                className="object-cover"
                                             />
                                         </div>
                                     )}
+                                    
+                                    <div className="mb-4">
+                                        <p className="text-gray-700 whitespace-pre-line">{selectedCategory.items[0].description}</p>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center text-sm text-gray-500 mt-6">
+                                        <span>{formatDateWithDay(selectedCategory.items[0].date)}</span>
+                                        <button 
+                                            onClick={() => handleChatAction(selectedCategory.items[0].description)}
+                                            className="px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                        >
+                                            Ask Luna
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                                );
-                            })}
+                            ) : (
+                                // Multiple items view for non-pricing opportunity categories
+                                <div className="space-y-3">
+                                    {/* Sort items by severity with bad/critical first */}
+                                    {[...selectedCategory.items]
+                                        .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
+                                        .map((item) => (
+                                        <div 
+                                            key={item.id} 
+                                            className={`border rounded-lg p-3 hover:shadow-sm transition-all ${
+                                                mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
+                                            }`}
+                                        >
+                                            <p className="text-gray-700">{item.description}</p>
+                                            <div className="mt-2 flex justify-end">
+                                                <button 
+                                                    onClick={() => handleChatAction(item.description)}
+                                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                                >
+                                                    Ask Luna
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                );
-            })}
+                    ) : (
+                        <div className="flex justify-center items-center h-full text-gray-500">
+                            Select an item from the list to view details
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
