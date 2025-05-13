@@ -516,13 +516,30 @@ export function Newsfeed() {
                             <div className="p-4">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <h2 className="text-xl font-bold text-gray-900">
+                                        <h2 className="text-xl font-bold text-gray-900 flex items-center flex-wrap">
                                             {capitalizeTitle(selectedCategory.title)}
                                             {selectedCategory.items.length > 1 && 
-                                                <span className="ml-2 text-gray-500 text-sm">
+                                                <span className="ml-2 text-gray-500 text-base">
                                                     ({selectedCategory.items.length} items)
                                                 </span>
                                             }
+                                            {selectedCategory.title.toLowerCase() === "pricing opportunity" && (
+                                                <span className="ml-3 text-green-600 font-medium text-lg">
+                                                    · Total Potential Savings: {formatCurrency(selectedCategory.items.reduce((total, item) => {
+                                                        // Extract savings amount from description
+                                                        const descriptionParts = item.description.split(',');
+                                                        let savingsAmount = 0;
+                                                        descriptionParts.forEach(part => {
+                                                            const trimmedPart = part.trim();
+                                                            if (trimmedPart.includes('Est Annual Savings:')) {
+                                                                const savingsText = trimmedPart.replace('Est Annual Savings:', '').trim();
+                                                                savingsAmount = parseFloat(savingsText.replace(/[^0-9.-]+/g, '')) || 0;
+                                                            }
+                                                        });
+                                                        return total + savingsAmount;
+                                                    }, 0))}
+                                                </span>
+                                            )}
                                         </h2>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -632,13 +649,30 @@ export function Newsfeed() {
                         <div>
                             <div className="flex justify-between items-start mb-8 pb-4 border-b border-gray-200">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">
+                                    <h2 className="text-2xl font-bold text-gray-900 flex items-center flex-wrap">
                                         {capitalizeTitle(selectedCategory.title)}
                                         {selectedCategory.items.length > 1 && 
                                             <span className="ml-2 text-gray-500 text-base">
                                                 ({selectedCategory.items.length} items)
                                             </span>
                                         }
+                                        {selectedCategory.title.toLowerCase() === "pricing opportunity" && (
+                                            <span className="ml-3 text-green-600 font-medium text-lg">
+                                                · Total Potential Savings: {formatCurrency(selectedCategory.items.reduce((total, item) => {
+                                                    // Extract savings amount from description
+                                                    const descriptionParts = item.description.split(',');
+                                                    let savingsAmount = 0;
+                                                    descriptionParts.forEach(part => {
+                                                        const trimmedPart = part.trim();
+                                                        if (trimmedPart.includes('Est Annual Savings:')) {
+                                                            const savingsText = trimmedPart.replace('Est Annual Savings:', '').trim();
+                                                            savingsAmount = parseFloat(savingsText.replace(/[^0-9.-]+/g, '')) || 0;
+                                                        }
+                                                    });
+                                                    return total + savingsAmount;
+                                                }, 0))}
+                                            </span>
+                                        )}
                                     </h2>
                                 </div>
                                 <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>

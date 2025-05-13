@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "./ui/button";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type QueryCategory = {
   title: string;
@@ -24,6 +24,25 @@ export const SuggestedQueries = ({
     timeEntries: true,
     costs: true,
   });
+  
+  // Track if we're on mobile for responsive content
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Set up mobile detection when component mounts
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    // Check immediately
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories((prev) => ({
@@ -255,12 +274,12 @@ export const SuggestedQueries = ({
                       key={idx}
                       variant="ghost"
                       onClick={() => handleSuggestionClick(
-                        window.innerWidth < 640 ? query.mobile : query.desktop,
+                        isMobile ? query.mobile : query.desktop,
                         query.sql
                       )}
                       className="w-full justify-start text-left font-normal bg-blue-50 hover:bg-blue-100 border border-gray-200 text-gray-700 rounded-md p-3 md:p-4 text-sm md:text-lg h-auto"
                     >
-                      {window.innerWidth < 640 ? query.mobile : query.desktop}
+                      {isMobile ? query.mobile : query.desktop}
                     </Button>
                   ))}
                 </div>
