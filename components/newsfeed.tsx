@@ -188,6 +188,19 @@ const groupByCategory = (items: NewsItem[]): GroupedCategory[] => {
     return result;
 };
 
+// Helper function to format currency
+const formatCurrency = (amount: string | number): string => {
+    // Convert to number if it's a string
+    const numericValue = typeof amount === 'string' ? parseFloat(amount.replace(/[^0-9.-]+/g, '')) : amount;
+    
+    // Format as USD
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+    }).format(numericValue);
+};
+
 export function Newsfeed() {
     const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -295,40 +308,75 @@ export function Newsfeed() {
     // Render a single details panel for either desktop or mobile
     const renderCategoryDetails = (category: GroupedCategory) => {
         if (category.title.toLowerCase() === "pricing opportunity") {
+            // Process all items to extract savings for sorting
+            const itemsWithSavings = [...category.items].map(item => {
+                // Extract item name from first part of description
+                const descriptionParts = item.description.split(',');
+                const itemName = descriptionParts[0].replace('Item:', '').trim();
+                
+                // Extract annual savings if present
+                let annualSavings: string | null = null;
+                let savingsAmount = 0;
+                let restOfDescription = '';
+                
+                // Loop through description parts to find Est Annual Savings
+                descriptionParts.forEach((part, index) => {
+                    const trimmedPart = part.trim();
+                    if (trimmedPart.includes('Est Annual Savings:')) {
+                        annualSavings = trimmedPart.replace('Est Annual Savings:', '').trim();
+                        // Convert to number for sorting
+                        savingsAmount = parseFloat(annualSavings.replace(/[^0-9.-]+/g, '')) || 0;
+                    } else if (index > 0) {
+                        // Rebuild description without the first part and without the savings part
+                        restOfDescription += (restOfDescription ? ', ' : '') + trimmedPart;
+                    }
+                });
+                
+                return {
+                    ...item,
+                    itemName,
+                    annualSavings,
+                    savingsAmount,
+                    restOfDescription
+                };
+            });
+            
+            // Sort by savings amount in descending order
+            itemsWithSavings.sort((a, b) => b.savingsAmount - a.savingsAmount);
+            
             return (
                 <div className="space-y-4 md:space-y-5">
-                    {/* Sort items by severity with bad/critical first */}
-                    {[...category.items]
-                        .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
-                        .map((item) => {
-                            // Extract item name from first part of description
-                            const descriptionParts = item.description.split(',');
-                            const itemName = descriptionParts[0].replace('Item:', '').trim();
-                            
-                            // Skip the first part that's used as the header
-                            const restOfDescription = descriptionParts.slice(1).join(',');
-                            
-                            return (
-                                <div 
-                                    key={item.id} 
-                                    className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
-                                        mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
-                                    }`}
-                                >
-                                    <h3 className="font-medium mb-2 md:text-lg">{itemName}</h3>
-                                    <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{restOfDescription}</div>
-                                    <div className="mt-2 md:mt-3 flex justify-end">
-                                        <button 
-                                            onClick={() => handleChatAction(item.description)}
-                                            className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                                        >
-                                            Ask Luna
-                                        </button>
-                                    </div>
+                    {itemsWithSavings.map((item) => {
+                        // Format the annual savings as currency if it exists
+                        const formattedSavings = item.annualSavings ? formatCurrency(item.annualSavings) : null;
+                        
+                        return (
+                            <div 
+                                key={item.id} 
+                                className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
+                                    mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
+                                }`}
+                            >
+                                <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="font-medium md:text-lg">{item.itemName}</h3>
+                                    {formattedSavings && (
+                                        <div className="text-green-600 font-medium whitespace-nowrap">
+                                            Potential Savings: {formattedSavings}
+                                        </div>
+                                    )}
                                 </div>
-                            );
-                        })
-                    }
+                                <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{item.restOfDescription}</div>
+                                <div className="mt-2 md:mt-3 flex justify-end">
+                                    <button 
+                                        onClick={() => handleChatAction(item.description)}
+                                        className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                    >
+                                        Ask Luna
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             );
         } else if (category.items.length === 1) {
@@ -466,15 +514,17 @@ export function Newsfeed() {
                     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
                             <div className="p-4">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-xl font-bold text-gray-900">
-                                        {capitalizeTitle(selectedCategory.title)}
-                                        {selectedCategory.items.length > 1 && 
-                                            <span className="ml-2 text-gray-500 text-sm">
-                                                ({selectedCategory.items.length} items)
-                                            </span>
-                                        }
-                                    </h2>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900">
+                                            {capitalizeTitle(selectedCategory.title)}
+                                            {selectedCategory.items.length > 1 && 
+                                                <span className="ml-2 text-gray-500 text-sm">
+                                                    ({selectedCategory.items.length} items)
+                                                </span>
+                                            }
+                                        </h2>
+                                    </div>
                                     <div className="flex items-center gap-2">
                                         <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>
                                             {selectedCategory.severity === "bad" ? "Red" : 
@@ -580,15 +630,17 @@ export function Newsfeed() {
                 <div className="flex-grow min-w-[500px] xl:min-w-[600px] 2xl:min-w-[700px] bg-white rounded-lg shadow-sm p-8 border border-gray-200 overflow-y-auto ml-8 mr-0">
                     {selectedCategory ? (
                         <div>
-                            <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
-                                <h2 className="text-2xl font-bold text-gray-900">
-                                    {capitalizeTitle(selectedCategory.title)}
-                                    {selectedCategory.items.length > 1 && 
-                                        <span className="ml-2 text-gray-500 text-base">
-                                            ({selectedCategory.items.length} items)
-                                        </span>
-                                    }
-                                </h2>
+                            <div className="flex justify-between items-start mb-8 pb-4 border-b border-gray-200">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">
+                                        {capitalizeTitle(selectedCategory.title)}
+                                        {selectedCategory.items.length > 1 && 
+                                            <span className="ml-2 text-gray-500 text-base">
+                                                ({selectedCategory.items.length} items)
+                                            </span>
+                                        }
+                                    </h2>
+                                </div>
                                 <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>
                                     {selectedCategory.severity === "bad" ? "Red" : 
                                      selectedCategory.severity === "good" ? "Green" : "Neutral"}
