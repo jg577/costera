@@ -14,6 +14,7 @@ interface NewsItem {
     date: string;      // New field from backend
     timestamp: string;
     imageUrl?: string;
+    additional_detail?: string;  // Additional detail from backend
 }
 
 // Mock data for development
@@ -193,12 +194,42 @@ const formatCurrency = (amount: string | number): string => {
     // Convert to number if it's a string
     const numericValue = typeof amount === 'string' ? parseFloat(amount.replace(/[^0-9.-]+/g, '')) : amount;
     
-    // Format as USD
+    // Format as USD with 2 decimal places
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-        maximumFractionDigits: 0
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     }).format(numericValue);
+};
+
+// Function to parse pricing alert description
+const parsePricingAlertDescription = (description: string) => {
+    const parts = description.split('|').map(part => part.trim());
+
+    const itemName = parts[0].replace('Item: ', '');
+    const manufacturer = parts[1].replace('Manufacturer: ', '');
+    const packSize = parts[2].replace('Pack: ', '');
+    const spend = parseFloat(parts[3].replace('Spend: $', ''));
+    const orderSavingsPotential = parseFloat(parts[4].replace('Order Savings Potential: $', ''));
+    const unitPrice = parseFloat(parts[5].replace('Unit Price (lbs) $', ''));
+    const cheaperPriceDate = parts[6].replace('Cheaper Unit Price (lbs) on ', '');
+    const cheaperUnitPrice = parseFloat(parts[7].replace('$', ''));
+    const lowManufacturer = parts[8].replace('Low Manufacturer: ', '');
+    const lowPackSize = parts[9].replace('Pack: ', '');
+
+    return {
+        itemName,
+        manufacturer,
+        packSize,
+        spend,
+        orderSavingsPotential,
+        unitPrice,
+        cheaperPriceDate,
+        cheaperUnitPrice,
+        lowManufacturer,
+        lowPackSize
+    };
 };
 
 export function Newsfeed() {
@@ -274,9 +305,14 @@ export function Newsfeed() {
         setSelectedCategory(category);
     };
 
-    const handleChatAction = (description: string) => {
+    const handleChatAction = (description: string, additional_detail?: string) => {
+        // Combine description with additional_detail if available
+        const fullContent = additional_detail 
+            ? `${description}\n\nAdditional Context: ${additional_detail}`
+            : description;
+        
         // Set the input value in the URL state for chat
-        router.push(`/?input=${encodeURIComponent(description)}`);
+        router.push(`/?input=${encodeURIComponent(fullContent)}`);
     };
     
     const closeModal = () => {
@@ -308,48 +344,38 @@ export function Newsfeed() {
     // Render a single details panel for either desktop or mobile
     const renderCategoryDetails = (category: GroupedCategory) => {
         if (category.title.toLowerCase() === "pricing opportunity") {
-            // Process all items to extract savings for sorting
-            const itemsWithSavings = [...category.items].map(item => {
-                // Extract item name from first part of description
-                const descriptionParts = item.description.split(',');
-                const itemName = descriptionParts[0].replace('Item:', '').trim();
-                
-                // Extract annual savings if present
-                let annualSavings: string | null = null;
-                let savingsAmount = 0;
-                let restOfDescription = '';
-                
-                // Loop through description parts to find Est Annual Savings
-                descriptionParts.forEach((part, index) => {
-                    const trimmedPart = part.trim();
-                    if (trimmedPart.includes('Est Annual Savings:')) {
-                        annualSavings = trimmedPart.replace('Est Annual Savings:', '').trim();
-                        // Convert to number for sorting
-                        savingsAmount = parseFloat(annualSavings.replace(/[^0-9.-]+/g, '')) || 0;
-                    } else if (index > 0) {
-                        // Rebuild description without the first part and without the savings part
-                        restOfDescription += (restOfDescription ? ', ' : '') + trimmedPart;
-                    }
-                });
-                
+            const itemsWithParsedDetails = category.items.map(item => {
+                const parsedDetails = parsePricingAlertDescription(item.description);
                 return {
                     ...item,
-                    itemName,
-                    annualSavings,
-                    savingsAmount,
-                    restOfDescription
+                    ...parsedDetails
                 };
             });
             
-            // Sort by savings amount in descending order
-            itemsWithSavings.sort((a, b) => b.savingsAmount - a.savingsAmount);
+            // Calculate total potential savings
+            const totalPotentialSavings = itemsWithParsedDetails.reduce((total, item) => total + (item.orderSavingsPotential || 0), 0);
             
+            // Sort items by order savings potential in descending order
+            itemsWithParsedDetails.sort((a, b) => b.orderSavingsPotential - a.orderSavingsPotential);
+            
+            // Render logic using parsed details
             return (
                 <div className="space-y-4 md:space-y-5">
-                    {itemsWithSavings.map((item) => {
-                        // Format the annual savings as currency if it exists
-                        const formattedSavings = item.annualSavings ? formatCurrency(item.annualSavings) : null;
-                        
+                    {itemsWithParsedDetails.map((item) => {
+                        // Format the order savings potential as currency
+                        const formattedSavings = item.orderSavingsPotential ? formatCurrency(item.orderSavingsPotential) : null;
+
+                        // Create a human-readable alert message
+                        const alertMessage = `
+                            Item: ${item.itemName} from ${item.manufacturer}.
+                            Current Spend: ${formatCurrency(item.spend)}.
+                            Potential Savings: ${formattedSavings}.
+                            Current Unit Price: ${formatCurrency(item.unitPrice)}.
+                            Cheaper Unit Price: ${formatCurrency(item.cheaperUnitPrice)} available on ${item.cheaperPriceDate}.
+                            Low Manufacturer: ${item.lowManufacturer}.
+                            Low Pack Size: ${item.lowPackSize}.
+                        `;
+
                         return (
                             <div 
                                 key={item.id} 
@@ -365,10 +391,10 @@ export function Newsfeed() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{item.restOfDescription}</div>
+                                <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{alertMessage}</div>
                                 <div className="mt-2 md:mt-3 flex justify-end">
                                     <button 
-                                        onClick={() => handleChatAction(item.description)}
+                                        onClick={() => handleChatAction(item.description, item.additional_detail)}
                                         className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                                     >
                                         Ask Luna
@@ -403,7 +429,7 @@ export function Newsfeed() {
                     <div className="flex justify-between items-center text-sm md:text-base text-gray-500 mt-6">
                         <span>{formatDateWithDay(category.items[0].date)}</span>
                         <button 
-                            onClick={() => handleChatAction(category.items[0].description)}
+                            onClick={() => handleChatAction(category.items[0].description, category.items[0].additional_detail)}
                             className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                         >
                             Ask Luna
@@ -428,7 +454,7 @@ export function Newsfeed() {
                             <p className="text-gray-700 md:text-base">{item.description}</p>
                             <div className="mt-2 md:mt-3 flex justify-end">
                                 <button 
-                                    onClick={() => handleChatAction(item.description)}
+                                    onClick={() => handleChatAction(item.description, item.additional_detail)}
                                     className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                                 >
                                     Ask Luna
@@ -526,17 +552,8 @@ export function Newsfeed() {
                                             {selectedCategory.title.toLowerCase() === "pricing opportunity" && (
                                                 <span className="ml-3 text-green-600 font-medium text-lg">
                                                     · Total Potential Savings: {formatCurrency(selectedCategory.items.reduce((total, item) => {
-                                                        // Extract savings amount from description
-                                                        const descriptionParts = item.description.split(',');
-                                                        let savingsAmount = 0;
-                                                        descriptionParts.forEach(part => {
-                                                            const trimmedPart = part.trim();
-                                                            if (trimmedPart.includes('Est Annual Savings:')) {
-                                                                const savingsText = trimmedPart.replace('Est Annual Savings:', '').trim();
-                                                                savingsAmount = parseFloat(savingsText.replace(/[^0-9.-]+/g, '')) || 0;
-                                                            }
-                                                        });
-                                                        return total + savingsAmount;
+                                                        const parsedDetails = parsePricingAlertDescription(item.description);
+                                                        return total + (parsedDetails.orderSavingsPotential || 0);
                                                     }, 0))}
                                                 </span>
                                             )}
@@ -659,17 +676,8 @@ export function Newsfeed() {
                                         {selectedCategory.title.toLowerCase() === "pricing opportunity" && (
                                             <span className="ml-3 text-green-600 font-medium text-lg">
                                                 · Total Potential Savings: {formatCurrency(selectedCategory.items.reduce((total, item) => {
-                                                    // Extract savings amount from description
-                                                    const descriptionParts = item.description.split(',');
-                                                    let savingsAmount = 0;
-                                                    descriptionParts.forEach(part => {
-                                                        const trimmedPart = part.trim();
-                                                        if (trimmedPart.includes('Est Annual Savings:')) {
-                                                            const savingsText = trimmedPart.replace('Est Annual Savings:', '').trim();
-                                                            savingsAmount = parseFloat(savingsText.replace(/[^0-9.-]+/g, '')) || 0;
-                                                        }
-                                                    });
-                                                    return total + savingsAmount;
+                                                    const parsedDetails = parsePricingAlertDescription(item.description);
+                                                    return total + (parsedDetails.orderSavingsPotential || 0);
                                                 }, 0))}
                                             </span>
                                         )}
