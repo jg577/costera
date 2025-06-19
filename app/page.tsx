@@ -1,13 +1,14 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-12 md:py-20">
+        <div className="py-10 md:py-16">
           {/* Logo and Brand */}
           <div className="flex items-center justify-center mb-12">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
@@ -17,12 +18,12 @@ export default function LandingPage() {
 
           {/* Main Content */}
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-8">
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-8 leading-tight">
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Business Intelligence, Simplified
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 mb-12">
+            <p className="text-xl text-gray-600 mb-12">
               Get instant insights about your business operations with natural language queries. No complex dashboards, just ask and receive.
             </p>
             
@@ -70,6 +71,29 @@ export default function LandingPage() {
               <p className="text-gray-600">Your data is protected with enterprise-grade security and encryption.</p>
             </div>
           </div>
+
+          {/*
+          <div className="mt-24 text-center">
+            <h2 className="text-lg font-semibold text-gray-600 tracking-wider uppercase mb-12">
+              Trusted by leading companies
+            </h2>
+            <div className="max-w-5xl mx-auto">
+              <div className="flex justify-center">
+                <div className="grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                  <Image
+                    // If your logo has a different name or extension, change it here.
+                    src="/logos/12-bones-logo.png"
+                    alt="12 Bones Smokehouse and Brewing Logo"
+                    width={160}
+                    height={60}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          */}
+
         </div>
       </div>
     </div>

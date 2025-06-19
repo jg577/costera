@@ -11,7 +11,7 @@ import {
   generateChartConfig,
   generateQuery,
   runGenerateSQLQuery,
-} from "../actions";
+} from "../../actions";
 import { Config, SqlQuery, QueryResult, Insights } from "@/lib/types";
 import { useSearch } from "@/lib/search-context";
 import { Results } from "@/components/results";
@@ -125,7 +125,7 @@ export default function Page() {
     return (
     <Suspense fallback={<div>Loading...</div>}>
       <SearchParamsHandler setInputValue={setInputValue} />
-      <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
+      <div className="flex flex-col flex-grow bg-gray-50 font-sans">
         
         <main className="flex-grow flex flex-col items-center w-full px-4 sm:px-6 lg:px-8 pt-16">
             <div className="w-full max-w-5xl mx-auto">
