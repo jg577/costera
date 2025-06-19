@@ -1,15 +1,19 @@
-import "./globals.css";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
-import { ThemeProvider } from "next-themes";
-import { Nav } from "@/components/nav";
+import './globals.css';
+import { Inter } from 'next/font/google';
 import { SearchProvider } from "@/lib/search-context";
+import { Header } from '@/components/header';
+import { Metadata } from 'next';
+import { Toaster } from "@/components/ui/sonner";
 
-export const metadata = {
-  metadataBase: new URL("https://luna"),
-  title: "12 Bones Smokehouse and Brewing - powered by Luna",
-  description:
-    "Restaurant analytics and operational insights powered by Luna's natural language processing.",
+const inter = Inter({
+  subsets: ["latin"],
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800']
+});
+
+export const metadata: Metadata = {
+  title: "Costera",
+  description: "Costera - Business Intelligence Platform",
 };
 
 export default function RootLayout({
@@ -18,15 +22,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${GeistMono.className} ${GeistSans.className}`}>
-        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
-          <SearchProvider>
-            <Nav />
+    <html lang="en" className={inter.className}>
+      <SearchProvider>
+        <body>
+          <Header />
+          <main className="min-h-screen">
             {children}
-          </SearchProvider>
-        </ThemeProvider>
-      </body>
+          </main>
+          <Toaster />
+        </body>
+      </SearchProvider>
     </html>
   );
 }

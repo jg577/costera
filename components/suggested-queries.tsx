@@ -239,51 +239,47 @@ export const SuggestedQueries = ({
   ];
 
   return (
-    <div className="space-y-3 md:space-y-6">
-      <h2 className="font-semibold text-lg md:text-2xl text-gray-900 mb-1 md:mb-2">Suggested Queries</h2>
-      <p className="text-gray-500 text-sm md:text-base mb-3 md:mb-6">
-        Click on any of these queries to get instant analytics
-      </p>
-
-      <div className="space-y-4 md:space-y-6">
-        {queryCategories.map((category) => (
-          <div key={category.title} className="rounded-lg border border-gray-200">
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Suggested Queries</h2>
+        <p className="text-lg text-gray-600">Click on any of these queries to get instant analytics</p>
+      </div>
+      
+      <div className="space-y-6">
+        {queryCategories.map((category, index) => (
+          <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200">
             <button
-              onClick={() => toggleCategory(category.title.toLowerCase())}
-              className="w-full flex justify-between items-center p-3 md:p-4 hover:bg-blue-50 bg-white rounded-lg text-left transition-colors"
+              onClick={() => toggleCategory(category.title)}
+              className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors duration-200"
             >
-              <h3 className="text-base md:text-xl font-semibold text-gray-900">{category.title}</h3>
-              {expandedCategories[category.title.toLowerCase()] ? (
-                <ChevronUpIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-500" />
-              ) : (
-                <ChevronDownIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-500" />
-              )}
-            </button>
-
-            {expandedCategories[category.title.toLowerCase()] && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="px-3 pb-3 md:px-4 md:pb-4"
-              >
-                <div className="space-y-2 md:space-y-3">
-                  {category.queries.map((query, idx) => (
-                    <Button
-                      key={idx}
-                      variant="ghost"
-                      onClick={() => handleSuggestionClick(
-                        isMobile ? query.mobile : query.desktop,
-                        query.sql
-                      )}
-                      className="w-full justify-start text-left font-normal bg-blue-50 hover:bg-blue-100 border border-gray-200 text-gray-700 rounded-md p-3 md:p-4 text-sm md:text-lg h-auto"
-                    >
-                      {isMobile ? query.mobile : query.desktop}
-                    </Button>
-                  ))}
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">{index + 1}</span>
                 </div>
-              </motion.div>
+                <h3 className="text-xl font-semibold text-gray-900">{category.title}</h3>
+              </div>
+              <ChevronDownIcon 
+                className={`w-6 h-6 text-gray-400 transition-transform duration-200 ${
+                  expandedCategories[category.title] ? 'rotate-180' : ''
+                }`} 
+              />
+            </button>
+            
+            {expandedCategories[category.title] && (
+              <div className="px-8 pb-6 space-y-3">
+                {category.queries.map((query, queryIndex) => (
+                  <button
+                    key={queryIndex}
+                    onClick={() => handleSuggestionClick(
+                      isMobile ? query.mobile : query.desktop,
+                      query.sql
+                    )}
+                    className="w-full text-left p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 border border-blue-100 hover:border-blue-200"
+                  >
+                    <span className="text-gray-700 font-medium">{isMobile ? query.mobile : query.desktop}</span>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         ))}

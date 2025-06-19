@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Loader2, ArrowRight } from "lucide-react";
 
 type Severity = "good" | "neutral" | "bad";
 
@@ -62,9 +63,9 @@ const severityColors = {
 };
 
 const severityBorderColors = {
-    good: "border-green-500",
-    neutral: "border-amber-500",
-    bad: "border-red-500"
+    good: "border-green-200",
+    neutral: "border-amber-200",
+    bad: "border-red-200"
 };
 
 const severityTextColors = {
@@ -109,10 +110,7 @@ const formatDateWithDay = (dateString: string): string => {
     // Parse as local date, not UTC
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day); // JS months are 0-based
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayOfWeek = days[date.getDay()];
-    const formattedDate = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    return `${dayOfWeek}, ${formattedDate}`;
+    return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 // Helper function to get numeric severity value
@@ -242,22 +240,18 @@ export function Newsfeed() {
 
     useEffect(() => {
         const fetchNews = async () => {
+            setLoading(true);
             try {
-                // Use a very large limit to get all news items (effectively no limit)
                 const response = await fetch('https://luna-backend-gamma.vercel.app/api/news?limit=1000');
                 const data = await response.json();
-                
-                // Just use the data as-is from the API
-                setNewsItems(data);
+                const sortedData = data.sort((a: NewsItem, b: NewsItem) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                setNewsItems(sortedData);
             } catch (error) {
                 console.error('Error fetching news:', error);
-                // Fall back to mock data
-                setNewsItems(mockNewsItems);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchNews();
         
         // Check if we're on mobile initially
@@ -323,8 +317,8 @@ export function Newsfeed() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <div className="flex justify-center items-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
         );
     }
@@ -360,7 +354,7 @@ export function Newsfeed() {
             
             // Render logic using parsed details
             return (
-                <div className="space-y-4 md:space-y-5">
+                <div className="space-y-4">
                     {itemsWithParsedDetails.map((item) => {
                         // Format the order savings potential as currency
                         const formattedSavings = item.orderSavingsPotential ? formatCurrency(item.orderSavingsPotential) : null;
@@ -379,25 +373,23 @@ export function Newsfeed() {
                         return (
                             <div 
                                 key={item.id} 
-                                className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
-                                    mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
-                                }`}
+                                className={`p-4 rounded-lg border-l-4 ${severityBorderColors[mapSeverity(item.severity)]} bg-white hover:shadow-md transition-shadow`}
                             >
                                 <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="font-medium md:text-lg">{item.itemName}</h3>
+                                    <h3 className="font-semibold text-gray-800 mb-1">{item.itemName}</h3>
                                     {formattedSavings && (
                                         <div className="text-green-600 font-medium whitespace-nowrap">
                                             Potential Savings: {formattedSavings}
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-sm md:text-base text-gray-700 whitespace-pre-line">{alertMessage}</div>
-                                <div className="mt-2 md:mt-3 flex justify-end">
+                                <div className="text-sm text-gray-600 whitespace-pre-line">{alertMessage}</div>
+                                <div className="mt-2 flex justify-end">
                                     <button 
                                         onClick={() => handleChatAction(item.description, item.additional_detail)}
-                                        className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                        className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-md transition-colors"
                                     >
-                                        Ask Luna
+                                        Ask Costera
                                     </button>
                                 </div>
                             </div>
@@ -410,7 +402,7 @@ export function Newsfeed() {
             return (
                 <div>
                     {category.items[0].imageUrl && (
-                        <div className="relative h-48 md:h-64 w-full mb-4 md:mb-6 rounded-md overflow-hidden">
+                        <div className="relative h-40 w-full mb-3 rounded-md overflow-hidden">
                             <Image
                                 src={category.items[0].imageUrl}
                                 alt={category.items[0].title}
@@ -420,19 +412,18 @@ export function Newsfeed() {
                         </div>
                     )}
                     
-                    <div className="mb-4 md:mb-6">
-                        <p className="text-gray-700 md:text-lg whitespace-pre-line">
+                    <div className="mb-4">
+                        <p className="text-gray-600 text-sm mb-3">
                             {category.items[0].description}
                         </p>
                     </div>
                     
-                    <div className="flex justify-between items-center text-sm md:text-base text-gray-500 mt-6">
-                        <span>{formatDateWithDay(category.items[0].date)}</span>
+                    <div className="flex justify-end">
                         <button 
                             onClick={() => handleChatAction(category.items[0].description, category.items[0].additional_detail)}
-                            className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                            className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-md transition-colors"
                         >
-                            Ask Luna
+                            Ask Costera
                         </button>
                     </div>
                 </div>
@@ -440,24 +431,22 @@ export function Newsfeed() {
         } else {
             // Multiple items view for non-pricing opportunity categories
             return (
-                <div className="space-y-3 md:space-y-4">
+                <div className="space-y-3">
                     {/* Sort items by severity with bad/critical first */}
                     {[...category.items]
                         .sort((a, b) => getSeverityValue(a.severity) - getSeverityValue(b.severity))
                         .map((item) => (
                         <div 
                             key={item.id} 
-                            className={`border rounded-lg p-3 md:p-4 hover:shadow-sm transition-all ${
-                                mapSeverity(item.severity) === "bad" ? "border-l-4 border-l-red-500" : ""
-                            }`}
+                            className={`p-4 rounded-lg border-l-4 ${severityBorderColors[mapSeverity(item.severity)]} bg-white hover:shadow-md transition-shadow`}
                         >
-                            <p className="text-gray-700 md:text-base">{item.description}</p>
-                            <div className="mt-2 md:mt-3 flex justify-end">
+                            <p className="text-gray-600 text-sm mb-3">{item.description}</p>
+                            <div className="mt-2 flex justify-end">
                                 <button 
                                     onClick={() => handleChatAction(item.description, item.additional_detail)}
-                                    className="px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                    className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-md transition-colors"
                                 >
-                                    Ask Luna
+                                    Ask Costera
                                 </button>
                             </div>
                         </div>
@@ -472,17 +461,30 @@ export function Newsfeed() {
         return (
             <div className="px-0">
                 {/* Filter buttons */}
-                <div className="flex justify-end mb-2 px-2">
-                    <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-xl">
+                    <h2 className="text-2xl font-bold mb-2">Business Insights</h2>
+                    <p className="text-blue-100">Stay updated with your latest business alerts</p>
+                </div>
+                
+                <div className="flex justify-end mb-6">
+                    <div className="inline-flex items-center rounded-xl shadow-sm border border-gray-200 overflow-hidden bg-white">
                         <button
                             onClick={() => setShowUrgentOnly(false)}
-                            className={`px-3 py-1.5 text-sm font-medium ${!showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                            className={`px-6 py-3 text-sm font-medium transition-all duration-200 ${
+                                !showUrgentOnly 
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
+                                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
                         >
                             All Alerts
                         </button>
                         <button
                             onClick={() => setShowUrgentOnly(true)}
-                            className={`px-3 py-1.5 text-sm font-medium ${showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                            className={`px-6 py-3 text-sm font-medium transition-all duration-200 ${
+                                showUrgentOnly 
+                                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md' 
+                                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
                         >
                             Urgent Only
                         </button>
@@ -518,13 +520,20 @@ export function Newsfeed() {
                                             <div
                                                 key={category.id}
                                                 onClick={() => handleCategoryClick(category)}
-                                                className={`p-1.5 rounded-md cursor-pointer transition-all duration-200 border-l-3 
-                                                    hover:bg-gray-100 border-transparent
-                                                    ${severityBorderColors[category.severity]}`}
+                                                className={`p-6 rounded-xl cursor-pointer transition-all duration-200 border ${
+                                                    selectedCategory?.id === category.id 
+                                                        ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-md' 
+                                                        : 'hover:bg-gray-50 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                                } ${severityBorderColors[category.severity]}`}
                                             >
-                                                <div className="flex items-center gap-2 pl-1">
-                                                    <div className={`w-2 h-2 rounded-full ${severityColors[category.severity]}`} />
-                                                    <h4 className="text-sm font-medium truncate">{capitalizeTitle(category.title)} <span className="text-gray-500">{countText}</span></h4>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-4 h-4 rounded-full ${severityColors[category.severity]} shadow-sm`} />
+                                                    <div className="min-w-0 flex-1">
+                                                        <h4 className="text-base font-semibold text-gray-900 mb-1">
+                                                            {capitalizeTitle(category.title)}
+                                                        </h4>
+                                                        <p className="text-sm text-gray-500">{countText}</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -586,120 +595,59 @@ export function Newsfeed() {
     
     // DESKTOP VIEW
     return (
-        <div className="w-full flex flex-col p-0">
-            <div className="flex justify-end mb-6">
-                <div className="inline-flex items-center rounded-md shadow-sm border overflow-hidden">
-                    <button
-                        onClick={() => setShowUrgentOnly(false)}
-                        className={`px-4 py-2 text-sm font-medium ${!showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    >
-                        All Alerts
-                    </button>
-                    <button
-                        onClick={() => setShowUrgentOnly(true)}
-                        className={`px-4 py-2 text-sm font-medium ${showUrgentOnly ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    >
-                        Urgent Only
-                    </button>
-                </div>
-            </div>
-            
-            <div className="flex h-[calc(100vh-180px)]">
-                {/* Left sidebar with proper padding */}
-                <div className="w-80 xl:w-[380px] 2xl:w-[440px] flex-shrink-0 overflow-y-auto pb-6 pr-8">
+        <div className="flex h-[calc(100vh-65px)]">
+            {/* Left sidebar */}
+            <div className="w-1/3 xl:w-1/4 h-full overflow-y-auto p-6 border-r border-gray-200">
+                <div className="space-y-6">
                     {groupedItemsArray.map(([dateString, items]) => {
-                        // Group items by category
                         const categories = groupByCategory(items);
-                        
-                        // Filter categories if urgent only is selected
-                        const filteredCategories = showUrgentOnly 
-                            ? categories.filter(category => category.severity === "bad")
-                            : categories;
-                        
-                        // Skip date group if it has no categories after filtering
-                        if (filteredCategories.length === 0) return null;
-                        
+                        if (categories.length === 0) return null;
                         return (
-                            <div key={dateString} className="mb-5">
-                                <h3 className="text-base font-bold text-gray-800 py-2 px-4 border-l-4 border-blue-600 bg-blue-50 rounded-r-md shadow-sm mb-4">
+                            <div key={dateString}>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-3 px-1">
                                     {formatDateWithDay(dateString)}
-                                    <span className="ml-2 text-gray-500 text-sm">({filteredCategories.length})</span>
                                 </h3>
-                                <div className="space-y-3">
-                                    {filteredCategories.map((category) => {
-                                        // Always show the count for all categories
-                                        const countText = `(${category.items.length})`;
-                                        const isLargeCategory = category.items.length > 5;
-                                        const isPricingOpportunity = category.title.toLowerCase() === "pricing opportunity";
-                                        
-                                        return (
-                                            <div
-                                                key={category.id}
-                                                onClick={() => handleCategoryClick(category)}
-                                                className={`p-3.5 rounded-md cursor-pointer transition-all duration-200 border-l-3 ${
-                                                    selectedCategory?.id === category.id 
-                                                        ? 'bg-blue-100 border-blue-500' 
-                                                        : 'hover:bg-gray-100 border-transparent'
-                                                } ${severityBorderColors[category.severity]} ${(isPricingOpportunity || isLargeCategory) ? 'mb-1' : ''}`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-3 h-3 rounded-full ${severityColors[category.severity]} flex-shrink-0`} />
-                                                    <div className="min-w-0 flex-1">
-                                                        <h4 className="text-sm font-medium break-normal">
-                                                            {capitalizeTitle(category.title)} 
-                                                            <span className="ml-1 text-gray-500">{countText}</span>
-                                                        </h4>
-                                                    </div>
+                                <div className="space-y-2">
+                                    {categories.map((category) => (
+                                        <div
+                                            key={category.id}
+                                            onClick={() => setSelectedCategory(category)}
+                                            className={`p-3 rounded-lg cursor-pointer transition-all border-2 ${selectedCategory?.id === category.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full ${severityColors[category.severity]} flex-shrink-0`} />
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium text-sm text-gray-800">{capitalizeTitle(category.title)}</h4>
+                                                    <p className="text-xs text-gray-500">{category.items.length} item(s)</p>
                                                 </div>
+                                                <ArrowRight className={`w-4 h-4 text-gray-400 transition-transform ${selectedCategory?.id === category.id ? 'translate-x-1' : ''}`} />
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
-                
-                {/* Main content area with proper padding */}
-                <div className="flex-grow min-w-[500px] xl:min-w-[600px] 2xl:min-w-[700px] bg-white rounded-lg shadow-sm p-8 border border-gray-200 overflow-y-auto ml-8 mr-0">
-                    {selectedCategory ? (
-                        <div>
-                            <div className="flex justify-between items-start mb-8 pb-4 border-b border-gray-200">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 flex items-center flex-wrap">
-                                        {capitalizeTitle(selectedCategory.title)}
-                                        {selectedCategory.items.length > 1 && 
-                                            <span className="ml-2 text-gray-500 text-base">
-                                                ({selectedCategory.items.length} items)
-                                            </span>
-                                        }
-                                        {selectedCategory.title.toLowerCase() === "pricing opportunity" && (
-                                            <span className="ml-3 text-green-600 font-medium text-lg">
-                                                · Total Potential Savings: {formatCurrency(selectedCategory.items.reduce((total, item) => {
-                                                    const parsedDetails = parsePricingAlertDescription(item.description);
-                                                    return total + (parsedDetails.orderSavingsPotential || 0);
-                                                }, 0))}
-                                            </span>
-                                        )}
-                                    </h2>
-                                </div>
-                                <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${severityTextColors[selectedCategory.severity]} bg-gray-100`}>
-                                    {selectedCategory.severity === "bad" ? "Red" : 
-                                     selectedCategory.severity === "good" ? "Green" : "Neutral"}
-                                </div>
-                            </div>
-                            
-                            {renderCategoryDetails(selectedCategory)}
+            </div>
+            
+            {/* Main content area */}
+            <div className="flex-grow w-2/3 xl:w-3/4 h-full overflow-y-auto p-6">
+                {selectedCategory ? (
+                    <div>
+                        <div className="pb-4 mb-4 border-b border-gray-200">
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                {capitalizeTitle(selectedCategory.title)}
+                            </h2>
+                            <p className="text-sm text-gray-500">{selectedCategory.items.length} related item(s)</p>
                         </div>
-                    ) : (
-                        <div className="flex flex-col justify-center items-center h-full text-gray-500 text-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 mb-4 text-gray-300">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                            </svg>
-                            <p>Select an item from the list to view details</p>
-                        </div>
-                    )}
-                </div>
+                        {renderCategoryDetails(selectedCategory)}
+                    </div>
+                ) : (
+                    <div className="flex flex-col justify-center items-center h-full text-gray-500 text-lg">
+                        <p>Select an item from the list to view details.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

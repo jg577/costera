@@ -8,11 +8,11 @@ import {
     loadApiKey,
     withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { LunaChatModelId, LunaChatSettings } from './luna-chat-settings';
+import { CosteraChatModelId, CosteraChatSettings } from './costera-chat-settings';
 
-export interface LunaProviderSettings {
+export interface CosteraProviderSettings {
     /**
-     * Luna API key.
+     * Costera API key.
      */
     apiKey?: string;
     /**
@@ -31,47 +31,51 @@ export interface LunaProviderSettings {
      * Custom fetch implementation.
      */
     fetch?: FetchFunction;
+    /**
+     * Debug flag.
+     */
+    debug?: boolean;
 }
 
-export interface LunaProvider {
+export interface CosteraProvider {
     /**
      * Creates a chat model for text generation.
      */
     (
-        modelId: LunaChatModelId,
-        settings?: LunaChatSettings,
+        modelId: CosteraChatModelId,
+        settings?: CosteraChatSettings,
     ): LanguageModelV1;
 
     /**
      * Creates a chat model for text generation.
      */
     chatModel(
-        modelId: LunaChatModelId,
-        settings?: LunaChatSettings,
+        modelId: CosteraChatModelId,
+        settings?: CosteraChatSettings,
     ): LanguageModelV1;
 
     completionModel(
-        modelId: LunaChatModelId,
-        settings?: LunaChatSettings,
+        modelId: CosteraChatModelId,
+        settings?: CosteraChatSettings,
     ): LanguageModelV1;
 }
 
-function getCommonModelConfig(options: LunaProviderSettings = {}) {
+function getCommonModelConfig(options: CosteraProviderSettings = {}) {
     const baseURL = withoutTrailingSlash(
-        options.baseURL ?? process.env.LUNA_BACKEND_URL ?? 'https://luna-backend-gamma.vercel.app/api/'
+        options.baseURL ?? process.env.COSTERA_BACKEND_URL ?? 'https://luna-backend-gamma.vercel.app/api/'
     );
 
     const getHeaders = () => ({
         Authorization: `Bearer ${loadApiKey({
             apiKey: options.apiKey,
-            environmentVariableName: 'LUNA_BACKEND_API_KEY',
-            description: 'Luna API key',
+            environmentVariableName: 'COSTERA_BACKEND_API_KEY',
+            description: 'Costera API key',
         })}`,
         ...options.headers,
     });
 
     return {
-        provider: 'luna.chat',
+        provider: 'costera.chat',
         url: ({ path }: { path: string }) => {
             const url = new URL(`${baseURL}${path}`);
             if (options.queryParams) {
@@ -85,12 +89,12 @@ function getCommonModelConfig(options: LunaProviderSettings = {}) {
     };
 }
 
-export function createLuna(
-    options: LunaProviderSettings = {}
-): LunaProvider {
+export function createCostera(
+    options: CosteraProviderSettings = {}
+): CosteraProvider {
     const createChatModel = (
-        modelId: LunaChatModelId,
-        settings: LunaChatSettings = {}
+        modelId: CosteraChatModelId,
+        settings: CosteraChatSettings = { model: modelId }
     ) => {
         return new OpenAICompatibleChatLanguageModel(modelId, settings, {
             ...getCommonModelConfig(options),
@@ -98,8 +102,8 @@ export function createLuna(
     };
 
     const createCompletionModel = (
-        modelId: LunaChatModelId,
-        settings: LunaChatSettings = {}
+        modelId: CosteraChatModelId,
+        settings: CosteraChatSettings = { model: modelId }
     ) => {
         return new OpenAICompatibleCompletionLanguageModel(modelId, settings, {
             ...getCommonModelConfig(options),
@@ -107,8 +111,8 @@ export function createLuna(
     };
 
     const provider = (
-        modelId: LunaChatModelId,
-        settings?: LunaChatSettings
+        modelId: CosteraChatModelId,
+        settings?: CosteraChatSettings
     ) => createChatModel(modelId, settings);
 
     provider.chatModel = createChatModel;
@@ -117,4 +121,4 @@ export function createLuna(
     return provider;
 }
 
-export const luna = createLuna();
+export const costera = createCostera();
