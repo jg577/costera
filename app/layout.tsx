@@ -1,26 +1,11 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { SearchProvider } from "@/lib/search-context";
-import { Header } from '@/components/header';
-import { Metadata } from 'next';
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from '@/components/ui/sonner';
 import { NextAuthProvider } from '@/lib/providers';
-import { Footer } from '@/components/footer';
 
 const inter = Inter({
-  subsets: ["latin"],
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700', '800']
+  subsets: ['latin'],
 });
-
-export const metadata: Metadata = {
-  title: "Costera",
-  description: "Costera - Business Intelligence Platform",
-  openGraph: {
-    title: "Costera",
-    description: "Costera - Business Intelligence Platform",
-  },
-};
 
 export default function RootLayout({
   children,
@@ -29,16 +14,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.className}>
-      <SearchProvider>
-        <NextAuthProvider>
-          <body>
-            <Header />
-            <main>{children}</main>
-            <Footer />
-            <Toaster />
-          </body>
-        </NextAuthProvider>
-      </SearchProvider>
+      <NextAuthProvider>
+        <body>
+          {children}
+          <Toaster />
+        </body>
+      </NextAuthProvider>
     </html>
   );
 }
