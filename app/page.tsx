@@ -42,9 +42,9 @@ const suggestedQueries = [
     {
         title: "Sales Analysis",
         queries: [
-            "What were the total sales for the last quarter?",
             "Which products are the top sellers?",
             "Show me the sales trend over the past year.",
+            "What were the total sales for the last quarter?",
         ],
     },
     {
