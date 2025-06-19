@@ -4,6 +4,7 @@ import { SearchProvider } from "@/lib/search-context";
 import { Header } from '@/components/header';
 import { Metadata } from 'next';
 import { Toaster } from "@/components/ui/sonner";
+import { NextAuthProvider } from "@/lib/providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,13 +29,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <SearchProvider>
-        <body>
-          <Header />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Toaster />
-        </body>
+        <NextAuthProvider>
+          <body>
+            <Header />
+            <main className="min-h-screen">
+              {children}
+            </main>
+            <Toaster />
+          </body>
+        </NextAuthProvider>
       </SearchProvider>
     </html>
   );
