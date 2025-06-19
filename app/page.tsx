@@ -129,11 +129,11 @@ export default function Page() {
       <SearchParamsHandler setInputValue={setInputValue} />
       <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
         
-        <main className="flex-grow flex flex-col items-center justify-center w-full px-4 sm:px-6 lg:px-8">
+        <main className="flex-grow flex flex-col items-center w-full px-4 sm:px-6 lg:px-8 pt-16">
             <div className="w-full max-w-5xl mx-auto">
                 
                 {querySessions.length === 0 ? (
-                    <div className="py-16 text-center">
+                    <div className="text-center">
                         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
                              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                                 12 Bones Smokehouse and Brewing

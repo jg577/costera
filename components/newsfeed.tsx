@@ -460,13 +460,7 @@ export function Newsfeed() {
     if (isMobileView) {
         return (
             <div className="px-0">
-                {/* Filter buttons */}
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-xl">
-                    <h2 className="text-2xl font-bold mb-2">Business Insights</h2>
-                    <p className="text-blue-100">Stay updated with your latest business alerts</p>
-                </div>
-                
-                <div className="flex justify-end mb-6">
+                <div className="flex justify-end my-4 px-4">
                     <div className="inline-flex items-center rounded-xl shadow-sm border border-gray-200 overflow-hidden bg-white">
                         <button
                             onClick={() => setShowUrgentOnly(false)}
