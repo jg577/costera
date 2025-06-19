@@ -129,7 +129,7 @@ export default function Page() {
       <SearchParamsHandler setInputValue={setInputValue} />
       <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
         
-        <main className="flex-grow flex flex-col items-center justify-center w-full px-6 lg:px-8">
+        <main className="flex-grow flex flex-col items-center justify-center w-full px-4 sm:px-6 lg:px-8">
             <div className="w-full max-w-5xl mx-auto">
                 
                 {querySessions.length === 0 ? (
@@ -168,13 +168,13 @@ export default function Page() {
                     </div>
                 )}
                 
-                <div className="sticky bottom-0 pb-8 pt-4 bg-gray-50/80 backdrop-blur-lg">
+                <div className="sticky bottom-0 pb-4 sm:pb-8 pt-4 bg-gray-50/80 backdrop-blur-lg">
                     <form onSubmit={handleSubmit} className="relative">
                         <textarea
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
-                            placeholder="Ask a follow-up, or start a new query..."
-                            className="w-full text-base border border-gray-300 rounded-xl shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 p-4 pr-16"
+                            placeholder="start a new query"
+                            className="w-full text-base border border-gray-300 rounded-xl shadow-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 p-3 sm:p-4 pr-12 sm:pr-16"
                             rows={inputValue.split('\n').length || 1}
                             disabled={loading}
                             onKeyDown={(e) => {
@@ -187,7 +187,7 @@ export default function Page() {
                         <button
                             type="submit"
                             disabled={!inputValue.trim() || loading}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white p-2.5 rounded-full transition-all duration-200"
+                            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white p-2 sm:p-2.5 rounded-full transition-all duration-200"
                         >
                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
                         </button>
