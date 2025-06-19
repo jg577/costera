@@ -14,6 +14,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Costera",
   description: "Costera - Business Intelligence Platform",
+  openGraph: {
+    title: "Costera",
+    description: "Costera - Business Intelligence Platform",
+  },
 };
 
 export default function RootLayout({
