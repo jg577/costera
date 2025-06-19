@@ -64,7 +64,7 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   
   const { searchInput, setSearchInput } = useSearch();
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const lastSessionRef = useRef<HTMLDivElement>(null);
 
    useEffect(() => {
      if (searchInput) {
@@ -75,9 +75,7 @@ export default function Page() {
    }, [searchInput, setSearchInput]);
 
    useEffect(() => {
-     if (querySessions.length > 0) {
-       resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
-     }
+    lastSessionRef.current?.scrollIntoView({ behavior: 'smooth' });
    }, [querySessions]);
 
    const handleSuggestionClick = (query: string) => {
@@ -92,9 +90,6 @@ export default function Page() {
 
      setLoading(true);
      setError(null);
-     if (!queryOverride) {
-       setInputValue("");
-     }
 
      try {
        const sqlQueries: SqlQuery[] = await generateQuery(currentQuery);
@@ -121,6 +116,9 @@ export default function Page() {
        toast.error(err.message || "An unexpected error occurred.");
      } finally {
        setLoading(false);
+       if (!queryOverride) {
+        setInputValue("");
+       }
      }
    };
 
@@ -139,14 +137,18 @@ export default function Page() {
                                 12 Bones Smokehouse and Brewing
                             </span>
                         </h1>
-                        <p className="text-lg text-gray-600 mb-10">
+                        <p className="text-lg text-gray-600 mb-10 md:mb-16">
                             Get instant insights by asking questions about your business operations and performance.
                         </p>
                     </div>
                 ) : (
-                    <div ref={resultsRef} className="py-8">
-                        {querySessions.map((session) => (
-                          <div key={session.id} className="mb-12">
+                    <div className="py-8 md:py-16">
+                        {querySessions.map((session, index) => (
+                          <div 
+                            key={session.id} 
+                            className="mb-12"
+                            ref={index === querySessions.length - 1 ? lastSessionRef : null}
+                          >
                               <h2 className="text-2xl font-semibold text-gray-800 mb-4">{session.userQuery}</h2>
                               <div className="bg-white border border-gray-200 rounded-lg p-6">
                                   <QueryViewer
@@ -195,7 +197,7 @@ export default function Page() {
                 </div>
 
                 {querySessions.length === 0 && (
-                    <div className="mt-4">
+                    <div className="mt-4 md:mt-12">
                         <h3 className="text-lg font-semibold text-gray-700 mb-4 text-center">Suggested Queries</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {suggestedQueries.map((category) => (
