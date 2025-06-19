@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -66,13 +66,52 @@ export default function Page() {
   const { searchInput, setSearchInput } = useSearch();
   const lastSessionRef = useRef<HTMLDivElement>(null);
 
+  const handleSubmit = useCallback(async (e?: React.FormEvent, queryOverride?: string) => {
+    if (e) e.preventDefault();
+    const currentQuery = queryOverride || inputValue;
+    if (!currentQuery.trim()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const sqlQueries: SqlQuery[] = await generateQuery(currentQuery);
+
+      const queryResults: QueryResult[] = await runGenerateSQLQuery(sqlQueries);
+
+      const chartConfig: Config | null = await generateChartConfig(
+        queryResults,
+        currentQuery
+      );
+
+      setQuerySessions(prev => [...prev, {
+        id: new Date().toISOString(),
+        userQuery: currentQuery,
+        sqlQueries,
+        queryResults,
+        chartConfig,
+        insights: null, 
+        selectedQueryIndex: 0,
+      }]);
+
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+      toast.error(err.message || "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+      if (!queryOverride) {
+       setInputValue("");
+      }
+    }
+  }, [inputValue, generateQuery, runGenerateSQLQuery, generateChartConfig]);
+
    useEffect(() => {
      if (searchInput) {
        setInputValue(searchInput);
        handleSubmit(undefined, searchInput);
        setSearchInput("");
      }
-   }, [searchInput, setSearchInput]);
+   }, [searchInput, setSearchInput, handleSubmit]);
 
    useEffect(() => {
     lastSessionRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -81,45 +120,6 @@ export default function Page() {
    const handleSuggestionClick = (query: string) => {
      setInputValue(query);
      handleSubmit(undefined, query);
-   };
-
-   const handleSubmit = async (e?: React.FormEvent, queryOverride?: string) => {
-     if (e) e.preventDefault();
-     const currentQuery = queryOverride || inputValue;
-     if (!currentQuery.trim()) return;
-
-     setLoading(true);
-     setError(null);
-
-     try {
-       const sqlQueries: SqlQuery[] = await generateQuery(currentQuery);
-
-       const queryResults: QueryResult[] = await runGenerateSQLQuery(sqlQueries);
-
-       const chartConfig: Config | null = await generateChartConfig(
-         queryResults,
-         currentQuery
-       );
-
-       setQuerySessions(prev => [...prev, {
-         id: new Date().toISOString(),
-         userQuery: currentQuery,
-         sqlQueries,
-         queryResults,
-         chartConfig,
-         insights: null, 
-         selectedQueryIndex: 0,
-       }]);
-
-     } catch (err: any) {
-       setError(err.message || "An unexpected error occurred.");
-       toast.error(err.message || "An unexpected error occurred.");
-     } finally {
-       setLoading(false);
-       if (!queryOverride) {
-        setInputValue("");
-       }
-     }
    };
 
     return (

@@ -293,7 +293,7 @@ export function Newsfeed() {
                 }
             }
         }
-    }, [loading, isMobileView, newsItems, showUrgentOnly]);
+    }, [loading, isMobileView, newsItems, showUrgentOnly, selectedCategory]);
 
     const handleCategoryClick = (category: GroupedCategory) => {
         setSelectedCategory(category);
